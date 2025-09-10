@@ -5,13 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Exam Edu Kreasi | Landing Page</title>
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+  <!-- Icon untuk Android / PWA -->
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/android-chrome-192x192.png">
 </head>
 <body class="bg-gradient-to-br from-indigo-50 to-white flex flex-col min-h-screen">
 
   <!-- Header -->
   <header class="w-full bg-indigo-600 shadow-md fixed top-0 z-50">
     <div class="container mx-auto flex items-center justify-between py-4 px-6">
-      <h1 class="text-2xl font-bold text-white">Exam Edu Kreasi</h1>
+      <!-- Logo + Nama -->
+      <div class="flex items-center gap-2">
+        <img src="assets/android-chrome-192x192.png" alt="Logo Exam Edu Kreasi" class="w-8 h-8 rounded">
+        <h1 class="text-2xl font-bold text-white">Exam Edu Kreasi</h1>
+      </div>
       <nav class="space-x-6 hidden md:flex">
         <a href="#features" class="text-white/90 hover:text-white">Fitur</a>
         <a href="#download" class="text-white/90 hover:text-white">Unduh</a>
@@ -117,10 +126,10 @@
     <h3 class="text-3xl font-bold text-gray-800">Tentang Aplikasi</h3>
     <p class="mt-4 text-gray-600 max-w-lg mx-auto">
       Exam Edu Kreasi (Versi 3.5) dikembangkan untuk memudahkan sekolah dalam 
-      melaksanakan ujian online dengan sistem keamanan maksimal. 
+      melaksanakan ujian Online dengan sistem keamanan maksimal. 
       Soal & jadwal dikelola langsung melalui Google Spreadsheet.
     </p>
-    <a href="#" target="_blank" class="text-indigo-600 underline mt-2 block">Website Edukreasi</a>
+    <a href="#" class="text-indigo-600 underline mt-2 block">Website Edukreasi</a>
   </section>
 
   <!-- Footer -->
