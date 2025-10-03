@@ -20,7 +20,10 @@
   </div>
 
   <script>
-    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6xi5S1zBVBkgL1XyS2v0khJtLr3xMMFmoIHwkFH2lDvxBlNcvfdeQbHcFI-zJgEVREhMB2rN1bwkJ/pub?gid=0&single=true&output=csv";
+    // URL untuk Sheet1 (token di E2)
+    const sheet1Url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6xi5S1zBVBkgL1XyS2v0khJtLr3xMMFmoIHwkFH2lDvxBlNcvfdeQbHcFI-zJgEVREhMB2rN1bwkJ/pub?gid=0&single=true&output=csv";
+    // URL untuk Sheet "Ujian"
+    const ujianUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6xi5S1zBVBkgL1XyS2v0khJtLr3xMMFmoIHwkFH2lDvxBlNcvfdeQbHcFI-zJgEVREhMB2rN1bwkJ/pub?gid=925890882&single=true&output=csv";
 
     function parseDateTime(tanggal, jam) {
       const [year, month, day] = tanggal.split("-").map(Number);
@@ -28,35 +31,43 @@
       return new Date(year, month - 1, day, hour, minute);
     }
 
-    fetch(csvUrl)
-      .then(res => res.text())
-      .then(csv => {
-        const rows = csv.split("\n").map(r => r.split(","));
+    async function loadToken() {
+      try {
+        // Ambil jadwal ujian
+        const ujianRes = await fetch(ujianUrl);
+        const ujianCsv = await ujianRes.text();
+        const ujianRows = ujianCsv.split("\n").map(r => r.split(","));
+
         const now = new Date();
+        let adaJadwalAktif = false;
 
-        let token = null;
-
-        for (let i = 1; i < rows.length; i++) {
-          const tglMulai = rows[i][4];
-          const jamMulai = rows[i][5];
-          const tglSelesai = rows[i][6];
-          const jamSelesai = rows[i][7];
-          const tokenCell = rows[i][8]; // misalnya kolom I untuk token
+        for (let i = 1; i < ujianRows.length; i++) {
+          const tglMulai = ujianRows[i][4];
+          const jamMulai = ujianRows[i][5];
+          const tglSelesai = ujianRows[i][6];
+          const jamSelesai = ujianRows[i][7];
 
           if (tglMulai && jamMulai && tglSelesai && jamSelesai) {
             const start = parseDateTime(tglMulai, jamMulai);
             const end = parseDateTime(tglSelesai, jamSelesai);
 
             if (now >= start && now <= end) {
-              token = tokenCell;
+              adaJadwalAktif = true;
               break;
             }
           }
         }
 
         const tokenDiv = document.getElementById("token");
-        if (token) {
-          tokenDiv.innerText = token.trim();
+
+        if (adaJadwalAktif) {
+          // Ambil token dari Sheet1!E2
+          const sheet1Res = await fetch(sheet1Url);
+          const sheet1Csv = await sheet1Res.text();
+          const sheet1Rows = sheet1Csv.split("\n").map(r => r.split(","));
+          const token = sheet1Rows[1][4]; // E2
+
+          tokenDiv.innerText = token ? token.trim() : "Token kosong";
           tokenDiv.classList.remove("text-xl");
           tokenDiv.classList.add("text-5xl", "font-bold", "text-indigo-800");
         } else {
@@ -64,11 +75,13 @@
           tokenDiv.classList.remove("text-5xl");
           tokenDiv.classList.add("text-xl");
         }
-      })
-      .catch(err => {
+      } catch (err) {
         console.error("Error:", err);
         document.getElementById("token").innerText = "Gagal ambil data";
-      });
+      }
+    }
+
+    loadToken();
   </script>
 
   <style>
