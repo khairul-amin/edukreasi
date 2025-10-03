@@ -9,33 +9,45 @@
 <body class="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
   <div class="bg-white/90 backdrop-blur-md rounded-2xl shadow-xl p-8 w-full max-w-md text-center animate-fadeIn">
     <h1 class="text-3xl font-extrabold text-indigo-700 mb-4 drop-shadow">Token Ujian</h1>
-    
-    <div id="token" class="text-xl font-mono text-gray-900 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl p-4 border border-gray-300 shadow-inner mb-4">
+
+    <!-- Tempat Token -->
+    <div id="token" class="text-xl font-mono text-gray-900 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl p-6 border border-gray-300 shadow-inner min-h-[80px] flex items-center justify-center">
       Loading...
     </div>
 
-    <button onclick="loadToken()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition">
-      🔄 Reload Token
+    <!-- Tombol Reload -->
+    <button onclick="loadToken()" class="mt-6 px-5 py-2 bg-indigo-600 text-white font-semibold rounded-xl shadow hover:bg-indigo-700 transition">
+      🔄 Reload
     </button>
   </div>
 
   <script>
-    // URL dasar
+    const ujianBase = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6xi5S1zBVBkgL1XyS2v0khJtLr3xMMFmoIHwkFH2lDvxBlNcvfdeQbHcFI-zJgEVREhMB2rN1bwkJ/pub?gid=925890882&single=true&output=csv";
     const sheet1Base = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6xi5S1zBVBkgL1XyS2v0khJtLr3xMMFmoIHwkFH2lDvxBlNcvfdeQbHcFI-zJgEVREhMB2rN1bwkJ/pub?gid=0&single=true&output=csv";
-    const ujianBase  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6xi5S1zBVBkgL1XyS2v0khJtLr3xMMFmoIHwkFH2lDvxBlNcvfdeQbHcFI-zJgEVREhMB2rN1bwkJ/pub?gid=925890882&single=true&output=csv";
 
-    function parseDateTime(tanggal, jam) {
-      const [year, month, day] = tanggal.split("-").map(Number);
-      const [hour, minute] = jam.split(":").map(Number);
-      return new Date(year, month - 1, day, hour, minute);
+    function parseDateTime(dateStr, timeStr) {
+      return new Date(dateStr + "T" + timeStr + ":00+07:00"); // WIB
     }
 
     async function loadToken() {
+      const tokenDiv = document.getElementById("token");
+
+      // tampilkan Loading + spinner
+      tokenDiv.innerHTML = `
+        <div class="flex items-center gap-2">
+          <svg class="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+          <span>Loading...</span>
+        </div>
+      `;
+      tokenDiv.classList.remove("text-5xl", "font-bold", "text-indigo-800");
+      tokenDiv.classList.add("text-xl");
+
       try {
         const now = new Date();
-        console.log("⏰ Waktu sekarang:", now.toString());
 
-        // selalu tambahkan timestamp biar fresh
         const ujianUrl = ujianBase + "&t=" + Date.now();
         const sheet1Url = sheet1Base + "&t=" + Date.now();
 
@@ -56,8 +68,6 @@
             const start = parseDateTime(tglMulai, jamMulai);
             const end = parseDateTime(tglSelesai, jamSelesai);
 
-            console.log(`📌 Cek jadwal baris ${i}:`, start.toString(), "→", end.toString());
-
             if (now >= start && now <= end) {
               adaJadwalAktif = true;
               break;
@@ -65,29 +75,24 @@
           }
         }
 
-        const tokenDiv = document.getElementById("token");
-
         if (adaJadwalAktif) {
-          // Ambil token dari Sheet1!E2
+          // Ambil token dari Sheet1 E2
           const sheet1Res = await fetch(sheet1Url, { cache: "no-store" });
           const sheet1Csv = await sheet1Res.text();
           const sheet1Rows = sheet1Csv.split("\n").map(r => r.split(","));
           const token = sheet1Rows[1][4]; // E2
 
-          console.log("✅ Token aktif:", token);
-
           tokenDiv.innerText = token ? token.trim() : "Token kosong";
           tokenDiv.classList.remove("text-xl");
           tokenDiv.classList.add("text-5xl", "font-bold", "text-indigo-800");
         } else {
-          console.log("❌ Tidak ada jadwal aktif");
           tokenDiv.innerText = "Tidak ada jadwal aktif";
           tokenDiv.classList.remove("text-5xl");
           tokenDiv.classList.add("text-xl");
         }
       } catch (err) {
         console.error("Error:", err);
-        document.getElementById("token").innerText = "Gagal ambil data";
+        tokenDiv.innerText = "Gagal ambil data";
       }
     }
 
