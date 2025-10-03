@@ -3,30 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tampilkan Token</title>
+  <title>Token Ujian Otomatis</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
-  <div class="bg-white/90 backdrop-blur-md rounded-2xl shadow-xl p-8 w-full max-w-md text-center animate-fadeIn">
+  <div class="bg-white/90 backdrop-blur-md rounded-2xl shadow-xl p-8 w-full max-w-lg text-center animate-fadeIn">
     <h1 class="text-3xl font-extrabold text-indigo-700 mb-4 drop-shadow">Token Ujian</h1>
     
-    <div id="tokenBox" class="bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl p-4 border border-gray-300 shadow-inner mb-4 transition-all duration-700">
+    <div id="tokenBox" class="bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl p-6 border border-gray-300 shadow-inner mb-4 transition-all duration-700">
       <span id="token" class="block text-5xl font-mono font-bold text-indigo-700 transition-all duration-700">
         Loading...
       </span>
     </div>
 
-    <!-- Tombol reload manual -->
-    <button onclick="loadToken()" 
-      class="mt-2 px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow hover:bg-indigo-700 transition">
-      🔄 Reload Token
-    </button>
-
-    <p class="text-xs text-gray-500 mt-2">Token otomatis diperbarui setiap 5 menit</p>
+    <p class="text-xs text-gray-500 mt-2">Token otomatis tampil sesuai jadwal ujian</p>
   </div>
 
   <script>
-    const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6xi5S1zBVBkgL1XyS2v0khJtLr3xMMFmoIHwkFH2lDvxBlNcvfdeQbHcFI-zJgEVREhMB2rN1bwkJ/pub?gid=0&single=true&output=csv";
+    const jadwalUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6xi5S1zBVBkgL1XyS2v0khJtLr3xMMFmoIHwkFH2lDvxBlNcvfdeQbHcFI-zJgEVREhMB2rN1bwkJ/pub?gid=925890882&single=true&output=csv";
+    const tokenUrl  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6xi5S1zBVBkgL1XyS2v0khJtLr3xMMFmoIHwkFH2lDvxBlNcvfdeQbHcFI-zJgEVREhMB2rN1bwkJ/pub?gid=0&single=true&output=csv";
 
     async function loadToken() {
       const tokenSpan = document.getElementById("token");
@@ -35,31 +30,58 @@
       tokenSpan.classList.add("animate-pulse");
 
       try {
-        const res = await fetch(csvUrl + "&t=" + new Date().getTime()); // cegah cache
-        const csv = await res.text();
-        const rows = csv.split("\n").map(r => r.split(","));
-        const token = rows[1][4];
+        // Ambil jadwal
+        const resJadwal = await fetch(jadwalUrl + "&t=" + new Date().getTime());
+        const csvJadwal = await resJadwal.text();
+        const rows = csvJadwal.split("\n").map(r => r.split(","));
+
+        const now = new Date();
+        let adaUjian = false;
+
+        for (let i = 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (row.length < 8) continue;
+
+          const tglMulai = row[4];
+          const jamMulai = row[5];
+          const tglSelesai = row[6];
+          const jamSelesai = row[7];
+
+          const start = new Date(`${tglMulai}T${jamMulai}:00`);
+          const end   = new Date(`${tglSelesai}T${jamSelesai}:00`);
+
+          if (now >= start && now <= end) {
+            adaUjian = true;
+            break;
+          }
+        }
 
         tokenSpan.classList.remove("animate-pulse");
-        tokenSpan.innerText = token ? token.trim() : "Tidak ada data";
 
-        // Efek highlight background kuning sebentar
-        tokenBox.classList.add("bg-yellow-200");
-        setTimeout(() => {
-          tokenBox.classList.remove("bg-yellow-200");
-        }, 1500);
+        if (adaUjian) {
+          // Kalau ada ujian aktif → ambil token dari Sheet1 E2
+          const resToken = await fetch(tokenUrl + "&t=" + new Date().getTime());
+          const csvToken = await resToken.text();
+          const rowsToken = csvToken.split("\n").map(r => r.split(","));
+          const token = rowsToken[1][4]; // E2 = baris ke-2, kolom ke-5 (index 4)
+
+          tokenSpan.innerText = token ? token.trim() : "Token tidak ditemukan";
+          tokenBox.classList.add("bg-yellow-200");
+          setTimeout(() => tokenBox.classList.remove("bg-yellow-200"), 1500);
+        } else {
+          tokenSpan.innerText = "Belum ada ujian aktif";
+        }
 
       } catch (err) {
         console.error("Error:", err);
         tokenSpan.classList.remove("animate-pulse");
-        tokenSpan.innerText = "Gagal ambil token";
+        tokenSpan.innerText = "Gagal ambil data";
       }
     }
 
-    // Load token pertama kali
     loadToken();
-    // Auto refresh tiap 5 menit (300.000 ms)
-    setInterval(loadToken, 300000);
+    // Auto cek tiap 1 menit
+    setInterval(loadToken, 60000);
   </script>
 
   <style>
