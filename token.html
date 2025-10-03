@@ -8,26 +8,49 @@
 </head>
 <body class="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
   <div class="bg-white/90 backdrop-blur-md rounded-2xl shadow-xl p-8 w-full max-w-md text-center animate-fadeIn">
-    <h1 class="text-3xl font-extrabold text-indigo-700 mb-4 drop-shadow">Token dari Spreadsheet</h1>
-    <div id="token" class="text-xl font-mono text-gray-900 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl p-4 border border-gray-300 shadow-inner">
+    <h1 class="text-3xl font-extrabold text-indigo-700 mb-4 drop-shadow">Token Ujian</h1>
+    <div id="token" class="text-xl font-mono text-gray-900 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl p-4 border border-gray-300 shadow-inner mb-4 transition-all duration-500">
       Loading...
     </div>
+
+    <!-- Tombol reload -->
+    <button onclick="loadToken()" 
+      class="mt-2 px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow hover:bg-indigo-700 transition">
+      🔄 Reload Token
+    </button>
   </div>
 
   <script>
     const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6xi5S1zBVBkgL1XyS2v0khJtLr3xMMFmoIHwkFH2lDvxBlNcvfdeQbHcFI-zJgEVREhMB2rN1bwkJ/pub?gid=0&single=true&output=csv";
 
-    fetch(csvUrl)
-      .then(res => res.text())
-      .then(csv => {
+    async function loadToken() {
+      const tokenDiv = document.getElementById("token");
+      tokenDiv.innerText = "Loading...";
+      tokenDiv.classList.remove("scale-125"); // reset animasi
+      tokenDiv.classList.add("animate-pulse"); // animasi loading
+
+      try {
+        const res = await fetch(csvUrl);
+        const csv = await res.text();
         const rows = csv.split("\n").map(r => r.split(","));
         const token = rows[1][4];
-        document.getElementById("token").innerText = token ? token.trim() : "Tidak ada data";
-      })
-      .catch(err => {
+
+        tokenDiv.classList.remove("animate-pulse"); // stop loading
+        if (token) {
+          tokenDiv.innerText = token.trim();
+          tokenDiv.classList.add("scale-125"); // efek membesar
+        } else {
+          tokenDiv.innerText = "Tidak ada data";
+        }
+      } catch (err) {
         console.error("Error:", err);
-        document.getElementById("token").innerText = "Gagal ambil token";
-      });
+        tokenDiv.classList.remove("animate-pulse");
+        tokenDiv.innerText = "Gagal ambil token";
+      }
+    }
+
+    // Load token pertama kali
+    loadToken();
   </script>
 
   <style>
