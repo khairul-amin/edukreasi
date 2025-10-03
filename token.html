@@ -20,12 +20,13 @@
   </div>
 
   <script>
-    // URL untuk Sheet1 (token di E2)
+    // URL Sheet1 (E2 berisi token)
     const sheet1Url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6xi5S1zBVBkgL1XyS2v0khJtLr3xMMFmoIHwkFH2lDvxBlNcvfdeQbHcFI-zJgEVREhMB2rN1bwkJ/pub?gid=0&single=true&output=csv";
-    // URL untuk Sheet "Ujian"
+    // URL Sheet "Ujian" (jadwal)
     const ujianUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6xi5S1zBVBkgL1XyS2v0khJtLr3xMMFmoIHwkFH2lDvxBlNcvfdeQbHcFI-zJgEVREhMB2rN1bwkJ/pub?gid=925890882&single=true&output=csv";
 
     function parseDateTime(tanggal, jam) {
+      // Asumsi format YYYY-MM-DD dan HH:MM
       const [year, month, day] = tanggal.split("-").map(Number);
       const [hour, minute] = jam.split(":").map(Number);
       return new Date(year, month - 1, day, hour, minute);
@@ -33,27 +34,31 @@
 
     async function loadToken() {
       try {
-        // Ambil jadwal ujian
+        const now = new Date();
+        console.log("⏰ Waktu sekarang:", now.toString());
+
+        // Ambil jadwal
         const ujianRes = await fetch(ujianUrl);
         const ujianCsv = await ujianRes.text();
         const ujianRows = ujianCsv.split("\n").map(r => r.split(","));
 
-        const now = new Date();
         let adaJadwalAktif = false;
 
         for (let i = 1; i < ujianRows.length; i++) {
-          const tglMulai = ujianRows[i][4];
-          const jamMulai = ujianRows[i][5];
-          const tglSelesai = ujianRows[i][6];
-          const jamSelesai = ujianRows[i][7];
+          const tglMulai = ujianRows[i][4]?.trim();
+          const jamMulai = ujianRows[i][5]?.trim();
+          const tglSelesai = ujianRows[i][6]?.trim();
+          const jamSelesai = ujianRows[i][7]?.trim();
 
           if (tglMulai && jamMulai && tglSelesai && jamSelesai) {
             const start = parseDateTime(tglMulai, jamMulai);
             const end = parseDateTime(tglSelesai, jamSelesai);
 
+            console.log(`📌 Cek jadwal baris ${i}:`, start.toString(), "→", end.toString());
+
             if (now >= start && now <= end) {
               adaJadwalAktif = true;
-              break;
+              break; // cukup ambil 1 jadwal aktif
             }
           }
         }
@@ -67,10 +72,13 @@
           const sheet1Rows = sheet1Csv.split("\n").map(r => r.split(","));
           const token = sheet1Rows[1][4]; // E2
 
+          console.log("✅ Token aktif:", token);
+
           tokenDiv.innerText = token ? token.trim() : "Token kosong";
           tokenDiv.classList.remove("text-xl");
           tokenDiv.classList.add("text-5xl", "font-bold", "text-indigo-800");
         } else {
+          console.log("❌ Tidak ada jadwal aktif");
           tokenDiv.innerText = "Tidak ada jadwal aktif";
           tokenDiv.classList.remove("text-5xl");
           tokenDiv.classList.add("text-xl");
@@ -86,12 +94,4 @@
 
   <style>
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-fadeIn {
-      animation: fadeIn 0.8s ease-out;
-    }
-  </style>
-</body>
-</html>
+      from { opacity
