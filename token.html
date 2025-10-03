@@ -22,12 +22,7 @@
   </div>
 
   <script>
-    const ujianBase = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6xi5S1zBVBkgL1XyS2v0khJtLr3xMMFmoIHwkFH2lDvxBlNcvfdeQbHcFI-zJgEVREhMB2rN1bwkJ/pub?gid=925890882&single=true&output=csv";
     const sheet1Base = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6xi5S1zBVBkgL1XyS2v0khJtLr3xMMFmoIHwkFH2lDvxBlNcvfdeQbHcFI-zJgEVREhMB2rN1bwkJ/pub?gid=0&single=true&output=csv";
-
-    function parseDateTime(dateStr, timeStr) {
-      return new Date(dateStr + "T" + timeStr + ":00+07:00"); // WIB
-    }
 
     async function loadToken() {
       const tokenDiv = document.getElementById("token");
@@ -46,53 +41,17 @@
       tokenDiv.classList.add("text-xl");
 
       try {
-        const now = new Date();
+        // fetch token langsung dari Sheet1
+        const sheet1Csv = await fetch(sheet1Base + "&t=" + Date.now(), { cache: "no-store" }).then(r => r.text());
+        const sheet1Rows = sheet1Csv.trim().split("\n").map(r => r.split(","));
+        const token = sheet1Rows[1][4]; // E2
 
-        const ujianUrl = ujianBase + "&t=" + Date.now();
-        const sheet1Url = sheet1Base + "&t=" + Date.now();
-
-        // Ambil jadwal
-        const ujianRes = await fetch(ujianUrl, { cache: "no-store" });
-        const ujianCsv = await ujianRes.text();
-        const ujianRows = ujianCsv.split("\n").map(r => r.split(","));
-
-        let adaJadwalAktif = false;
-
-        for (let i = 1; i < ujianRows.length; i++) {
-          const tglMulai = ujianRows[i][4]?.trim();
-          const jamMulai = ujianRows[i][5]?.trim();
-          const tglSelesai = ujianRows[i][6]?.trim();
-          const jamSelesai = ujianRows[i][7]?.trim();
-
-          if (tglMulai && jamMulai && tglSelesai && jamSelesai) {
-            const start = parseDateTime(tglMulai, jamMulai);
-            const end = parseDateTime(tglSelesai, jamSelesai);
-
-            if (now >= start && now <= end) {
-              adaJadwalAktif = true;
-              break;
-            }
-          }
-        }
-
-        if (adaJadwalAktif) {
-          // Ambil token dari Sheet1 E2
-          const sheet1Res = await fetch(sheet1Url, { cache: "no-store" });
-          const sheet1Csv = await sheet1Res.text();
-          const sheet1Rows = sheet1Csv.split("\n").map(r => r.split(","));
-          const token = sheet1Rows[1][4]; // E2
-
-          tokenDiv.innerText = token ? token.trim() : "Token kosong";
-          tokenDiv.classList.remove("text-xl");
-          tokenDiv.classList.add("text-5xl", "font-bold", "text-indigo-800");
-        } else {
-          tokenDiv.innerText = "Tidak ada jadwal aktif";
-          tokenDiv.classList.remove("text-5xl");
-          tokenDiv.classList.add("text-xl");
-        }
+        tokenDiv.innerText = token ? token.trim() : "Token kosong";
+        tokenDiv.classList.remove("text-xl");
+        tokenDiv.classList.add("text-5xl", "font-bold", "text-indigo-800");
       } catch (err) {
         console.error("Error:", err);
-        tokenDiv.innerText = "Gagal ambil data";
+        tokenDiv.innerText = "Gagal ambil token";
       }
     }
 
