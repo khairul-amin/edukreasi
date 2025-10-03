@@ -14,19 +14,17 @@
       Loading...
     </div>
 
-    <button onclick="location.reload()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition">
-      🔄 Reload
+    <button onclick="loadToken()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition">
+      🔄 Reload Token
     </button>
   </div>
 
   <script>
-    // URL Sheet1 (E2 berisi token)
-    const sheet1Url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6xi5S1zBVBkgL1XyS2v0khJtLr3xMMFmoIHwkFH2lDvxBlNcvfdeQbHcFI-zJgEVREhMB2rN1bwkJ/pub?gid=0&single=true&output=csv";
-    // URL Sheet "Ujian" (jadwal)
-    const ujianUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6xi5S1zBVBkgL1XyS2v0khJtLr3xMMFmoIHwkFH2lDvxBlNcvfdeQbHcFI-zJgEVREhMB2rN1bwkJ/pub?gid=925890882&single=true&output=csv";
+    // URL dasar
+    const sheet1Base = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6xi5S1zBVBkgL1XyS2v0khJtLr3xMMFmoIHwkFH2lDvxBlNcvfdeQbHcFI-zJgEVREhMB2rN1bwkJ/pub?gid=0&single=true&output=csv";
+    const ujianBase  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6xi5S1zBVBkgL1XyS2v0khJtLr3xMMFmoIHwkFH2lDvxBlNcvfdeQbHcFI-zJgEVREhMB2rN1bwkJ/pub?gid=925890882&single=true&output=csv";
 
     function parseDateTime(tanggal, jam) {
-      // Asumsi format YYYY-MM-DD dan HH:MM
       const [year, month, day] = tanggal.split("-").map(Number);
       const [hour, minute] = jam.split(":").map(Number);
       return new Date(year, month - 1, day, hour, minute);
@@ -37,8 +35,12 @@
         const now = new Date();
         console.log("⏰ Waktu sekarang:", now.toString());
 
+        // selalu tambahkan timestamp biar fresh
+        const ujianUrl = ujianBase + "&t=" + Date.now();
+        const sheet1Url = sheet1Base + "&t=" + Date.now();
+
         // Ambil jadwal
-        const ujianRes = await fetch(ujianUrl);
+        const ujianRes = await fetch(ujianUrl, { cache: "no-store" });
         const ujianCsv = await ujianRes.text();
         const ujianRows = ujianCsv.split("\n").map(r => r.split(","));
 
@@ -58,7 +60,7 @@
 
             if (now >= start && now <= end) {
               adaJadwalAktif = true;
-              break; // cukup ambil 1 jadwal aktif
+              break;
             }
           }
         }
@@ -67,7 +69,7 @@
 
         if (adaJadwalAktif) {
           // Ambil token dari Sheet1!E2
-          const sheet1Res = await fetch(sheet1Url);
+          const sheet1Res = await fetch(sheet1Url, { cache: "no-store" });
           const sheet1Csv = await sheet1Res.text();
           const sheet1Rows = sheet1Csv.split("\n").map(r => r.split(","));
           const token = sheet1Rows[1][4]; // E2
@@ -89,9 +91,18 @@
       }
     }
 
+    // Load pertama kali
     loadToken();
   </script>
 
   <style>
     @keyframes fadeIn {
-      from { opacity
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadeIn {
+      animation: fadeIn 0.8s ease-out;
+    }
+  </style>
+</body>
+</html>
