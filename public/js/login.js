@@ -8,18 +8,40 @@ const supabase = createClient(
 const loginBtn = document.getElementById('loginBtn');
 
 loginBtn.onclick = async () => {
-  const { error } = await supabase.auth.signInWithOAuth({
+  const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: 'https://edukreasi.vercel.app/admin/dashboard', // langsung ke dashboard
+      redirectTo: 'https://edukreasi.vercel.app/admin/dashboard',
     },
   });
   if (error) alert('Gagal login: ' + error.message);
 };
 
-// Kalau sudah login, langsung redirect
-supabase.auth.getSession().then(({ data }) => {
+// Cek kalau sudah login
+supabase.auth.getSession().then(async ({ data }) => {
   if (data.session) {
+    const user = data.session.user;
+
+    // Simpan data user ke tabel users jika belum ada
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+
+    if (!existingUser) {
+      // Tentukan role
+      const role =
+        user.email === 'khairul.amin1046@guru.sd.belajar.id' ? 'superadmin' : 'user';
+
+      await supabase.from('users').insert({
+        id: user.id,
+        email: user.email,
+        name: user.user_metadata.full_name || user.email,
+        role,
+      });
+    }
+
     window.location.href = '/admin/dashboard';
   }
 });
