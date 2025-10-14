@@ -1,30 +1,50 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Admin</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard</title>
   <script type="module" src="../js/dashboard.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <style>
-    body { font-family: Arial; margin: 20px auto; max-width: 600px; }
-    input { padding: 8px; margin: 5px; width: 100%; }
-    button { padding: 8px 16px; margin-top: 10px; }
-    .card { border: 1px solid #ccc; padding: 15px; border-radius: 8px; margin-top: 10px; }
+    body { font-family: Arial; margin: 20px auto; max-width: 800px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background: #f5f5f5; }
+    input, button { padding: 8px; margin: 4px; width: 100%; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
-  <h2>Dashboard Admin</h2>
+  <h2>Dashboard</h2>
   <p id="userEmail"></p>
 
-  <div>
-    <input id="nama" placeholder="Nama Sekolah">
-    <input id="npsn" placeholder="NPSN">
-    <input id="link" placeholder="Link Spreadsheet">
-    <button id="saveBtn">Simpan & Generate QR</button>
+  <!-- Form hanya untuk user biasa -->
+  <div id="userForm" class="hidden">
+    <h3>Input Data Sekolah</h3>
+    <input id="nama" placeholder="Nama Sekolah" />
+    <input id="npsn" placeholder="NPSN" />
+    <input id="link" placeholder="Link Spreadsheet" />
+    <input id="hp" placeholder="Nomor HP" />
+    <button id="saveBtn">Simpan</button>
   </div>
 
-  <div id="list"></div>
+  <!-- Tabel data semua user (khusus super admin) -->
+  <div id="adminTable" class="hidden">
+    <h3>Data Semua User</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Nama Sekolah</th>
+          <th>NPSN</th>
+          <th>Spreadsheet</th>
+          <th>Nomor HP</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
   <button id="logoutBtn">Logout</button>
 </body>
 </html>
