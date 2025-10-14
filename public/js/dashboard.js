@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
 const supabase = createClient(
   'https://esmkveggutxzklavspnn.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzbWt2ZWdndXR4emtsYXZzcG5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzODIyNTQsImV4cCI6MjA3NTk1ODI1NH0.18vlPWg1S_6ocoCWKaCh_KU41TbipXyQNS2r5GKRQ44'
@@ -33,11 +34,11 @@ async function init() {
     .from('users')
     .select('role')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
 
   const role = userData?.role || 'user';
 
-  if (role === 'superadmin') {
+  if (role === 'super_admin') {
     adminTable.classList.remove('hidden');
     loadAllUsers();
   } else {
@@ -46,12 +47,18 @@ async function init() {
   }
 }
 
+// 🔹 Ambil data user yang sedang login
 async function loadUserData() {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('user_profiles')
     .select('*')
     .eq('user_id', user.id)
     .maybeSingle();
+
+  if (error) {
+    console.error('Gagal ambil data:', error.message);
+    return;
+  }
 
   if (data) {
     asalSekolah.value = data.asal_sekolah || '';
@@ -61,23 +68,35 @@ async function loadUserData() {
   }
 }
 
+// 🔹 Simpan / update data user tanpa duplikat
 saveBtn.onclick = async () => {
   if (!asalSekolah.value || !npsn.value || !linkSpreadsheet.value || !noHp.value)
     return alert('Lengkapi semua data!');
 
-  const { error } = await supabase.from('user_profiles').upsert({
-    user_id: user.id,
-    asal_sekolah: asalSekolah.value,
-    npsn: npsn.value,
-    link_spreadsheet: linkSpreadsheet.value,
-    no_hp: noHp.value,
-    updated_at: new Date().toISOString(),
-  });
+  const { error } = await supabase
+    .from('user_profiles')
+    .upsert(
+      {
+        user_id: user.id,
+        asal_sekolah: asalSekolah.value,
+        npsn: npsn.value,
+        link_spreadsheet: linkSpreadsheet.value,
+        no_hp: noHp.value,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' } // 👈 kunci supaya tidak duplikat
+    );
 
-  if (error) alert('Gagal simpan data: ' + error.message);
-  else alert('Data berhasil disimpan!');
+  if (error) {
+    alert('Gagal simpan data: ' + error.message);
+    console.error(error);
+  } else {
+    alert('Data berhasil disimpan!');
+    loadUserData(); // refresh data setelah update
+  }
 };
 
+// 🔹 Tampilkan semua data user untuk super admin
 async function loadAllUsers() {
   const { data, error } = await supabase
     .from('user_profiles')
@@ -88,10 +107,11 @@ async function loadAllUsers() {
       link_spreadsheet,
       no_hp,
       users (email, name)
-    `);
+    `)
+    .order('created_at', { ascending: true });
 
   if (error) {
-    console.error(error);
+    console.error('Gagal load semua user:', error.message);
     return;
   }
 
