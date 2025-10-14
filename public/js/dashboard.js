@@ -11,10 +11,10 @@ const tableBody = document.getElementById('tableBody');
 const saveBtn = document.getElementById('saveBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 
-const nama = document.getElementById('nama');
+const asalSekolah = document.getElementById('nama');
 const npsn = document.getElementById('npsn');
-const link = document.getElementById('link');
-const hp = document.getElementById('hp');
+const linkSpreadsheet = document.getElementById('link');
+const noHp = document.getElementById('hp');
 
 let user = null;
 
@@ -28,10 +28,16 @@ async function init() {
   user = data.session.user;
   userEmail.textContent = 'Login sebagai: ' + user.email;
 
-  // Super admin email
-  const superAdmin = 'khairul.amin1046@guru.sd.belajar.id';
+  // Ambil role dari tabel users
+  const { data: userData } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
 
-  if (user.email === superAdmin) {
+  const role = userData?.role || 'user';
+
+  if (role === 'superadmin') {
     adminTable.classList.remove('hidden');
     loadAllUsers();
   } else {
@@ -41,31 +47,31 @@ async function init() {
 }
 
 async function loadUserData() {
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from('user_profiles')
     .select('*')
     .eq('user_id', user.id)
     .maybeSingle();
 
   if (data) {
-    nama.value = data.nama || '';
+    asalSekolah.value = data.asal_sekolah || '';
     npsn.value = data.npsn || '';
-    link.value = data.link || '';
-    hp.value = data.hp || '';
+    linkSpreadsheet.value = data.link_spreadsheet || '';
+    noHp.value = data.no_hp || '';
   }
 }
 
 saveBtn.onclick = async () => {
-  if (!nama.value || !npsn.value || !link.value || !hp.value)
+  if (!asalSekolah.value || !npsn.value || !linkSpreadsheet.value || !noHp.value)
     return alert('Lengkapi semua data!');
 
   const { error } = await supabase.from('user_profiles').upsert({
     user_id: user.id,
-    email: user.email,
-    nama: nama.value,
+    asal_sekolah: asalSekolah.value,
     npsn: npsn.value,
-    link: link.value,
-    hp: hp.value,
+    link_spreadsheet: linkSpreadsheet.value,
+    no_hp: noHp.value,
+    updated_at: new Date().toISOString(),
   });
 
   if (error) alert('Gagal simpan data: ' + error.message);
@@ -73,20 +79,31 @@ saveBtn.onclick = async () => {
 };
 
 async function loadAllUsers() {
-  const { data, error } = await supabase.from('user_profiles').select('*');
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select(`
+      user_id,
+      asal_sekolah,
+      npsn,
+      link_spreadsheet,
+      no_hp,
+      users (email, name)
+    `);
+
   if (error) {
     console.error(error);
     return;
   }
+
   tableBody.innerHTML = data
     .map(
       (u) => `
       <tr>
-        <td>${u.email}</td>
-        <td>${u.nama || '-'}</td>
+        <td>${u.users?.email || '-'}</td>
+        <td>${u.asal_sekolah || '-'}</td>
         <td>${u.npsn || '-'}</td>
-        <td><a href="${u.link}" target="_blank">${u.link || '-'}</a></td>
-        <td>${u.hp || '-'}</td>
+        <td><a href="${u.link_spreadsheet}" target="_blank">${u.link_spreadsheet || '-'}</a></td>
+        <td>${u.no_hp || '-'}</td>
       </tr>
     `
     )
