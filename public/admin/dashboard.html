@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Admin</title>
+  <script type="module" src="./js/dashboard.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <style>
+    body { font-family: Arial; margin: 20px auto; max-width: 600px; }
+    input { padding: 8px; margin: 5px; width: 100%; }
+    button { padding: 8px 16px; margin-top: 10px; }
+    .card { border: 1px solid #ccc; padding: 15px; border-radius: 8px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h2>Dashboard Admin</h2>
+  <p id="userEmail"></p>
+
+  <div>
+    <input id="nama" placeholder="Nama Sekolah">
+    <input id="npsn" placeholder="NPSN">
+    <input id="link" placeholder="Link Spreadsheet">
+    <button id="saveBtn">Simpan & Generate QR</button>
+  </div>
+
+  <div id="list"></div>
+  <button id="logoutBtn">Logout</button>
+</body>
+</html>
