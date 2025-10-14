@@ -13,7 +13,7 @@ let user = null;
 
 async function checkSession() {
   const { data } = await supabase.auth.getSession();
-  if (!data.session) window.location.href = './admin.html';
+  if (!data.session) window.location.href = './admin/login.html';
   else {
     user = data.session.user;
     userEmail.textContent = 'Login sebagai: ' + user.email;
@@ -52,7 +52,7 @@ saveBtn.onclick = async () => {
 
 logoutBtn.onclick = async () => {
   await supabase.auth.signOut();
-  window.location.href = './admin.html';
+  window.location.href = './admin/login.html';
 };
 
 checkSession();
