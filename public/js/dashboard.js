@@ -27,18 +27,20 @@ async function init() {
   }
 
   user = data.session.user;
-  userEmail.textContent = 'Login sebagai: ' + user.email;
 
   // Ambil role dari tabel users
-  const { data: userData } = await supabase
+  const { data: userData, error: roleError } = await supabase
     .from('users')
     .select('role')
     .eq('id', user.id)
-    .maybeSingle();
+    .single();
 
   const role = userData?.role || 'user';
+  
+  // ✅ Tampilkan email + peran
+  userEmail.textContent = `Login sebagai: ${user.email} (${role})`;
 
-  if (role === 'super_admin') {
+  if (role === 'superadmin') {
     adminTable.classList.remove('hidden');
     loadAllUsers();
   } else {
@@ -46,6 +48,7 @@ async function init() {
     loadUserData();
   }
 }
+
 
 // 🔹 Ambil data user yang sedang login
 async function loadUserData() {
