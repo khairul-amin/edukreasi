@@ -86,37 +86,70 @@ saveBtn.onclick = async () => {
 
 async function loadAllUsers() {
   const { data, error } = await supabase
-    .from('user_profiles')
+    .from('users')
     .select(`
-      user_id,
-      asal_sekolah,
-      npsn,
-      link_spreadsheet,
-      no_hp,
-      users (email, name, role)
+      id,
+      email,
+      name,
+      role,
+      user_profiles (
+        asal_sekolah,
+        npsn,
+        link_spreadsheet,
+        no_hp
+      )
     `);
 
   if (error) {
-    console.error(error);
+    console.error('Error loading users:', error.message);
     return;
   }
 
-  tableBody.innerHTML = data
-    .map(
-      (u) => `
+  // Buat header tabel (jika belum dibuat)
+  const tableHead = document.querySelector('#tableHead');
+  if (tableHead && tableHead.innerHTML.trim() === '') {
+    tableHead.innerHTML = `
       <tr>
-        <td>${u.users?.email || '-'}</td>
-        <td>${u.users?.name || '-'}</td>
-        <td>${u.asal_sekolah || '-'}</td>
-        <td>${u.npsn || '-'}</td>
-        <td><a href="${u.link_spreadsheet}" target="_blank">${u.link_spreadsheet || '-'}</a></td>
-        <td>${u.no_hp || '-'}</td>
-        <td><button class="hapusBtn bg-red-500 text-white px-2 py-1 rounded" data-id="${u.user_id}">Hapus</button></td>
+        <th>Email</th>
+        <th>Nama</th>
+        <th>Asal Sekolah</th>
+        <th>NPSN</th>
+        <th>Link Spreadsheet</th>
+        <th>No HP</th>
+        <th>Status Profil</th>
+        <th>Aksi</th>
       </tr>
-    `
-    )
+    `;
+  }
+
+  // Isi tabel body
+  tableBody.innerHTML = data
+    .map((u) => {
+      const p = u.user_profiles?.[0] || {};
+      const statusProfil = p.asal_sekolah || p.npsn || p.link_spreadsheet || p.no_hp
+        ? '<span class="text-green-600 font-semibold">Sudah</span>'
+        : '<span class="text-red-600 font-semibold">Belum</span>';
+
+      return `
+        <tr>
+          <td>${u.email}</td>
+          <td>${u.name || '-'}</td>
+          <td>${p.asal_sekolah || '-'}</td>
+          <td>${p.npsn || '-'}</td>
+          <td><a href="${p.link_spreadsheet || '#'}" target="_blank">${p.link_spreadsheet || '-'}</a></td>
+          <td>${p.no_hp || '-'}</td>
+          <td>${statusProfil}</td>
+          <td>
+            <button class="hapusBtn bg-red-500 text-white px-2 py-1 rounded" data-id="${u.id}">
+              Hapus
+            </button>
+          </td>
+        </tr>
+      `;
+    })
     .join('');
 
+  // Tombol hapus user
   document.querySelectorAll('.hapusBtn').forEach((btn) =>
     btn.addEventListener('click', async (e) => {
       const id = e.target.dataset.id;
