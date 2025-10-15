@@ -18,6 +18,7 @@ const linkSpreadsheet = document.getElementById('link');
 const noHp = document.getElementById('hp');
 
 let user = null;
+let role = 'user';
 
 async function init() {
   const { data } = await supabase.auth.getSession();
@@ -31,14 +32,16 @@ async function init() {
   // Ambil role dari tabel users
   const { data: userData, error: roleError } = await supabase
     .from('users')
-    .select('role')
+    .select('role, name')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
 
-  const role = userData?.role || 'user';
-  
-  // ✅ Tampilkan email + peran
-  userEmail.textContent = `Login sebagai: ${user.email} (${role})`;
+  if (roleError) console.error('Role error:', roleError.message);
+
+  role = userData?.role || 'user';
+  const displayName = userData?.name || user.email;
+
+  userEmail.textContent = `Login sebagai: ${displayName} (${role})`;
 
   if (role === 'superadmin') {
     adminTable.classList.remove('hidden');
@@ -49,19 +52,12 @@ async function init() {
   }
 }
 
-
-// 🔹 Ambil data user yang sedang login
 async function loadUserData() {
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from('user_profiles')
     .select('*')
     .eq('user_id', user.id)
     .maybeSingle();
-
-  if (error) {
-    console.error('Gagal ambil data:', error.message);
-    return;
-  }
 
   if (data) {
     asalSekolah.value = data.asal_sekolah || '';
@@ -71,33 +67,23 @@ async function loadUserData() {
   }
 }
 
-// 🔹 Simpan / update data user tanpa duplikat
 saveBtn.onclick = async () => {
   if (!asalSekolah.value || !npsn.value || !linkSpreadsheet.value || !noHp.value)
     return alert('Lengkapi semua data!');
 
-const { error } = await supabase
-  .from('user_profiles')
-  .upsert({
+  const { error } = await supabase.from('user_profiles').upsert({
     user_id: user.id,
     asal_sekolah: asalSekolah.value,
     npsn: npsn.value,
     link_spreadsheet: linkSpreadsheet.value,
     no_hp: noHp.value,
     updated_at: new Date().toISOString(),
-  }, { onConflict: 'user_id' });
+  });
 
-
-  if (error) {
-    alert('Gagal simpan data: ' + error.message);
-    console.error(error);
-  } else {
-    alert('Data berhasil disimpan!');
-    loadUserData(); // refresh data setelah update
-  }
+  if (error) alert('Gagal simpan data: ' + error.message);
+  else alert('Data berhasil disimpan!');
 };
 
-// 🔹 Tampilkan semua data user untuk super admin
 async function loadAllUsers() {
   const { data, error } = await supabase
     .from('user_profiles')
@@ -107,12 +93,11 @@ async function loadAllUsers() {
       npsn,
       link_spreadsheet,
       no_hp,
-      users (email, name)
-    `)
-    .order('created_at', { ascending: true });
+      users (email, name, role)
+    `);
 
   if (error) {
-    console.error('Gagal load semua user:', error.message);
+    console.error(error);
     return;
   }
 
@@ -121,14 +106,40 @@ async function loadAllUsers() {
       (u) => `
       <tr>
         <td>${u.users?.email || '-'}</td>
+        <td>${u.users?.name || '-'}</td>
         <td>${u.asal_sekolah || '-'}</td>
         <td>${u.npsn || '-'}</td>
         <td><a href="${u.link_spreadsheet}" target="_blank">${u.link_spreadsheet || '-'}</a></td>
         <td>${u.no_hp || '-'}</td>
+        <td><button class="hapusBtn bg-red-500 text-white px-2 py-1 rounded" data-id="${u.user_id}">Hapus</button></td>
       </tr>
     `
     )
     .join('');
+
+  document.querySelectorAll('.hapusBtn').forEach((btn) =>
+    btn.addEventListener('click', async (e) => {
+      const id = e.target.dataset.id;
+      if (confirm('Yakin ingin menghapus user ini?')) {
+        await hapusUser(id);
+      }
+    })
+  );
+}
+
+async function hapusUser(userId) {
+  try {
+    // Hapus dari user_profiles
+    await supabase.from('user_profiles').delete().eq('user_id', userId);
+
+    // Hapus dari users
+    await supabase.from('users').delete().eq('id', userId);
+
+    alert('User berhasil dihapus!');
+    loadAllUsers();
+  } catch (err) {
+    alert('Gagal hapus user: ' + err.message);
+  }
 }
 
 logoutBtn.onclick = async () => {
