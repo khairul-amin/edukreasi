@@ -4,31 +4,29 @@ const supabase = createClient(
   'https://esmkveggutxzklavspnn.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzbWt2ZWdndXR4emtsYXZzcG5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzODIyNTQsImV4cCI6MjA3NTk1ODI1NH0.18vlPWg1S_6ocoCWKaCh_KU41TbipXyQNS2r5GKRQ44'
 );
+
 const userEmail = document.getElementById('userEmail');
 const userForm = document.getElementById('userForm');
 const adminTable = document.getElementById('adminTable');
 const tableBody = document.getElementById('tableBody');
 const saveBtn = document.getElementById('saveBtn');
 const logoutBtn = document.getElementById('logoutBtn');
+const metricCards = document.getElementById('metricCards');
 
 const asalSekolah = document.getElementById('nama');
 const npsn = document.getElementById('npsn');
 const linkSpreadsheet = document.getElementById('link');
 const noHp = document.getElementById('hp');
+const qrCodeContainer = document.getElementById('qrCode');
 
 let user = null;
 let role = 'user';
 
 async function init() {
   const { data } = await supabase.auth.getSession();
-  if (!data.session) {
-    window.location.href = '/admin';
-    return;
-  }
-
+  if (!data.session) return window.location.href = '/admin';
   user = data.session.user;
 
-  // Ambil role
   const { data: userData } = await supabase
     .from('users')
     .select('role, name')
@@ -37,12 +35,12 @@ async function init() {
 
   role = userData?.role || 'user';
   const displayName = userData?.name || user.email;
-
   userEmail.textContent = `Login sebagai: ${displayName} (${role})`;
 
   if (role === 'superadmin') {
     adminTable.classList.remove('hidden');
     loadAllUsers();
+    loadMetrics();
   } else {
     userForm.classList.remove('hidden');
     loadUserData();
@@ -61,6 +59,8 @@ async function loadUserData() {
     npsn.value = data.npsn || '';
     linkSpreadsheet.value = data.link_spreadsheet || '';
     noHp.value = data.no_hp || '';
+
+    generateQRCode(data.link_spreadsheet);
   }
 }
 
@@ -76,7 +76,7 @@ saveBtn.onclick = async () => {
       npsn: npsn.value,
       link_spreadsheet: linkSpreadsheet.value,
       no_hp: noHp.value,
-      updated_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }], { onConflict: ['user_id'] });
 
   if (error) alert('Gagal simpan data: ' + error.message);
@@ -86,9 +86,16 @@ saveBtn.onclick = async () => {
   }
 };
 
+// Generate QR
+function generateQRCode(link) {
+  qrCodeContainer.innerHTML = '';
+  if (!link) return;
+  new QRCode(qrCodeContainer, { text: link, width: 128, height: 128 });
+}
+
+// Load superadmin table
 async function loadAllUsers() {
-  const { data } = await supabase
-    .from('users')
+  const { data } = await supabase.from('users')
     .select(`
       id,
       email,
@@ -109,7 +116,7 @@ async function loadAllUsers() {
       <th class="border px-2 py-1">Nama</th>
       <th class="border px-2 py-1">Asal Sekolah</th>
       <th class="border px-2 py-1">NPSN</th>
-      <th class="border px-2 py-1">Link Spreadsheet</th>
+      <th class="border px-2 py-1">Spreadsheet</th>
       <th class="border px-2 py-1">No HP</th>
       <th class="border px-2 py-1">Status</th>
       <th class="border px-2 py-1">Aksi</th>
@@ -147,11 +154,30 @@ async function loadAllUsers() {
   );
 }
 
+// Metrics cards
+async function loadMetrics() {
+  const { data } = await supabase.from('users').select('*');
+  const totalUsers = data.length;
+  const totalFilled = data.filter(u => u.user_profiles).length;
+
+  metricCards.innerHTML = `
+    <div class="bg-white p-4 rounded shadow text-center">
+      <p class="text-gray-500">Total Users</p>
+      <p class="text-2xl font-bold">${totalUsers}</p>
+    </div>
+    <div class="bg-white p-4 rounded shadow text-center">
+      <p class="text-gray-500">Profil Terisi</p>
+      <p class="text-2xl font-bold">${totalFilled}</p>
+    </div>
+  `;
+}
+
 async function hapusUser(userId) {
   await supabase.from('user_profiles').delete().eq('user_id', userId);
   await supabase.from('users').delete().eq('id', userId);
   alert('User berhasil dihapus!');
   loadAllUsers();
+  loadMetrics();
 }
 
 logoutBtn.onclick = async () => {
@@ -160,3 +186,4 @@ logoutBtn.onclick = async () => {
 };
 
 init();
+
