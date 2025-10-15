@@ -10,10 +10,8 @@
   <title>Dashboard PSI Fathir Alfath</title>
   <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script type="module" src="../js/dashboard.js"></script>
-  <script type="module" src="../js/qrcode.js"></script>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script type="module" src="../js/dashboard.js" defer></script>
+  <script type="module" src="../js/qrcode.js" defer></script>
 </head>
 <body class="font-sans bg-gray-100 text-gray-800">
 
@@ -38,9 +36,7 @@
     </div>
 
     <!-- Metric Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="metricCards">
-      <!-- Cards akan di generate oleh JS -->
-    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="metricCards"></div>
 
     <!-- Form Input User -->
     <div id="userForm" class="hidden bg-white p-6 rounded shadow mb-6 max-w-md">
@@ -52,14 +48,12 @@
       <button id="saveBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Simpan</button>
 
       <!-- QR Code -->
- <!-- QR Code -->
-<div class="mt-4">
-  <h3 class="font-semibold mb-2">QR Code</h3>
-  <button id="generateQRBtn" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 mb-2">Generate QR</button>
-  <div id="qrCode" class="p-2 bg-gray-100 inline-block"></div>
-  <a id="downloadQR" class="hidden mt-2 inline-block bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700" download="qrcode.png">Download QR</a>
-</div>
-
+      <div class="mt-4">
+        <h3 class="font-semibold mb-2">QR Code</h3>
+        <button id="generateQRBtn" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 mb-2">Generate QR</button>
+        <div id="qrCode" class="p-2 bg-gray-100 inline-block"></div>
+        <a id="downloadQR" class="hidden mt-2 inline-block bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700" download="qrcode.png">Download QR</a>
+      </div>
     </div>
 
     <!-- Tabel Superadmin -->
