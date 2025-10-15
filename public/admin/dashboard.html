@@ -4,14 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard</title>
-  <script type="module" src="../js/dashboard.js"></script>
+  <script type="module" src="./dashboard.js"></script>
   <style>
-    body { font-family: Arial; margin: 20px auto; max-width: 800px; }
+    body { font-family: Arial; margin: 20px auto; max-width: 900px; }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
     th { background: #f5f5f5; }
-    input, button { padding: 8px; margin: 4px; width: 100%; }
+    input, button { padding: 8px; margin: 4px 0; width: 100%; box-sizing: border-box; }
     .hidden { display: none; }
+    .hapusBtn { cursor: pointer; }
+    a { text-decoration: none; }
   </style>
 </head>
 <body>
@@ -28,18 +30,12 @@
     <button id="saveBtn">Simpan</button>
   </div>
 
-  <!-- Tabel data semua user (khusus super admin) -->
+  <!-- Tabel data semua user (khusus superadmin) -->
   <div id="adminTable" class="hidden">
     <h3>Data Semua User</h3>
     <table>
-      <thead>
-        <tr>
-          <th>Email</th>
-          <th>Nama Sekolah</th>
-          <th>NPSN</th>
-          <th>Spreadsheet</th>
-          <th>Nomor HP</th>
-        </tr>
+      <thead id="tableHead">
+        <!-- Header akan diisi oleh JS -->
       </thead>
       <tbody id="tableBody"></tbody>
     </table>
