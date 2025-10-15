@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabase = createClient(
   'https://esmkveggutxzklavspnn.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzbWt2ZWdndXR4emtsYXZzcG5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzODIyNTQsImV4cCI6MjA3NTk1ODI1NH0.18vlPWg1S_6ocoCWKaCh_KU41TbipXyQNS2r5GKRQ44'
+  'YOUR_ANON_KEY_HERE' // ganti dengan key Supabase mu
 );
 
 const userEmail = document.getElementById('userEmail');
@@ -68,14 +68,12 @@ async function loadUserData() {
 }
 
 saveBtn.onclick = async () => {
-  // Validasi input
   if (!asalSekolah.value || !npsn.value || !linkSpreadsheet.value || !noHp.value) {
     return alert('Lengkapi semua data!');
   }
 
   try {
-    // Upsert user profile
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('user_profiles')
       .upsert(
         [{
@@ -86,7 +84,7 @@ saveBtn.onclick = async () => {
           no_hp: noHp.value,
           updated_at: new Date().toISOString(),
         }],
-        { onConflict: ['user_id'] } // <- pastikan update jika user_id sudah ada
+        { onConflict: ['user_id'] }
       );
 
     if (error) {
@@ -95,15 +93,12 @@ saveBtn.onclick = async () => {
     }
 
     alert('Data berhasil disimpan!');
-
-    // Refresh data form
     loadUserData();
   } catch (err) {
     console.error('Unexpected error:', err);
     alert('Terjadi kesalahan saat menyimpan data.');
   }
 };
-
 
 async function loadAllUsers() {
   const { data, error } = await supabase
@@ -126,6 +121,7 @@ async function loadAllUsers() {
     return;
   }
 
+  // Header tabel
   const tableHead = document.querySelector('#tableHead');
   if (tableHead && tableHead.innerHTML.trim() === '') {
     tableHead.innerHTML = `
@@ -142,9 +138,10 @@ async function loadAllUsers() {
     `;
   }
 
+  // Isi tabel
   tableBody.innerHTML = data
-    .map((u) => {
-      const p = u.user_profiles || {}; // ← perbaikan di sini
+    .map(u => {
+      const p = u.user_profiles || {}; // objek atau {} jika null
       const hasData = p.asal_sekolah || p.npsn || p.link_spreadsheet || p.no_hp;
       const statusProfil = hasData
         ? '<span class="text-green-600 font-semibold">Sudah</span>'
@@ -169,8 +166,8 @@ async function loadAllUsers() {
     })
     .join('');
 
-  document.querySelectorAll('.hapusBtn').forEach((btn) =>
-    btn.addEventListener('click', async (e) => {
+  document.querySelectorAll('.hapusBtn').forEach(btn =>
+    btn.addEventListener('click', async e => {
       const id = e.target.dataset.id;
       if (confirm('Yakin ingin menghapus user ini?')) {
         await hapusUser(id);
@@ -179,15 +176,10 @@ async function loadAllUsers() {
   );
 }
 
-
 async function hapusUser(userId) {
   try {
-    // Hapus dari user_profiles
     await supabase.from('user_profiles').delete().eq('user_id', userId);
-
-    // Hapus dari users
     await supabase.from('users').delete().eq('id', userId);
-
     alert('User berhasil dihapus!');
     loadAllUsers();
   } catch (err) {
