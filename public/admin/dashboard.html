@@ -1,16 +1,20 @@
 <!DOCTYPE html>
-<html lang="id" x-data="{ darkMode: false }" 
-      x-init="darkMode = JSON.parse(localStorage.getItem('darkMode')); $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+<html lang="id" x-data="{ darkMode: false }"
+      x-init="
+         darkMode = JSON.parse(localStorage.getItem('darkMode'));
+         $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
       :class="{'dark bg-gray-900': darkMode}">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Dashboard | PSI Fathir Alfath</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard PSI Fathir Alfath</title>
   <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-  <script type="module" src="../js/dashboard.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module" src="../js/dashboard.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body class="font-sans bg-gray-100 text-gray-800">
+
   <!-- Sidebar -->
   <aside class="w-64 bg-white shadow-md h-screen fixed">
     <div class="p-4 font-bold text-lg">Dashboard</div>
@@ -22,26 +26,40 @@
 
   <!-- Main Content -->
   <div class="ml-64 p-6">
+    <!-- Header -->
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold">Dashboard</h1>
-      <p id="userEmail" class="text-gray-600"></p>
-      <button id="logoutBtn" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">Logout</button>
+      <div class="flex items-center gap-4">
+        <p id="userEmail" class="text-gray-600"></p>
+        <button id="logoutBtn" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">Logout</button>
+      </div>
     </div>
 
-    <!-- Form User -->
-    <div id="userForm" class="hidden bg-white p-6 rounded shadow mb-6">
+    <!-- Metric Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="metricCards">
+      <!-- Cards akan di generate oleh JS -->
+    </div>
+
+    <!-- Form Input User -->
+    <div id="userForm" class="hidden bg-white p-6 rounded shadow mb-6 max-w-md">
       <h2 class="text-lg font-semibold mb-4">Input Data Sekolah</h2>
-      <input id="nama" placeholder="Nama Sekolah" class="border p-2 rounded w-full mb-2" />
-      <input id="npsn" placeholder="NPSN" class="border p-2 rounded w-full mb-2" />
-      <input id="link" placeholder="Link Spreadsheet" class="border p-2 rounded w-full mb-2" />
-      <input id="hp" placeholder="Nomor HP" class="border p-2 rounded w-full mb-4" />
+      <input id="nama" placeholder="Nama Sekolah" class="border p-2 rounded w-full mb-2">
+      <input id="npsn" placeholder="NPSN" class="border p-2 rounded w-full mb-2">
+      <input id="link" placeholder="Link Spreadsheet" class="border p-2 rounded w-full mb-2">
+      <input id="hp" placeholder="Nomor HP" class="border p-2 rounded w-full mb-4">
       <button id="saveBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Simpan</button>
+
+      <!-- QR Code -->
+      <div class="mt-4">
+        <h3 class="font-semibold mb-2">QR Code Spreadsheet</h3>
+        <div id="qrCode"></div>
+      </div>
     </div>
 
     <!-- Tabel Superadmin -->
     <div id="adminTable" class="hidden bg-white rounded shadow p-4 overflow-auto">
       <h2 class="text-lg font-semibold mb-4">Data Semua User</h2>
-      <table class="min-w-full border border-gray-300">
+      <table class="min-w-full border border-gray-300 table-auto">
         <thead id="tableHead" class="bg-gray-200"></thead>
         <tbody id="tableBody"></tbody>
       </table>
