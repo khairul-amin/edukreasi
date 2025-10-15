@@ -106,87 +106,79 @@ saveBtn.onclick = async () => {
 
 
 async function loadAllUsers() {
-  try {
-    const { data, error } = await supabase
-      .from('users')
-      .select(`
-        id,
-        email,
-        name,
-        role,
-        user_profiles (
-          asal_sekolah,
-          npsn,
-          link_spreadsheet,
-          no_hp
-        )
-      `);
+  const { data, error } = await supabase
+    .from('users')
+    .select(`
+      id,
+      email,
+      name,
+      role,
+      user_profiles (
+        asal_sekolah,
+        npsn,
+        link_spreadsheet,
+        no_hp
+      )
+    `);
 
-    if (error) {
-      console.error('Error loading users:', error.message);
-      return;
-    }
+  if (error) {
+    console.error('Error loading users:', error.message);
+    return;
+  }
 
-    const tableHead = document.querySelector('#tableHead');
-    if (tableHead && tableHead.innerHTML.trim() === '') {
-      tableHead.innerHTML = `
+  const tableHead = document.querySelector('#tableHead');
+  if (tableHead && tableHead.innerHTML.trim() === '') {
+    tableHead.innerHTML = `
+      <tr>
+        <th>Email</th>
+        <th>Nama</th>
+        <th>Asal Sekolah</th>
+        <th>NPSN</th>
+        <th>Link Spreadsheet</th>
+        <th>No HP</th>
+        <th>Status Profil</th>
+        <th>Aksi</th>
+      </tr>
+    `;
+  }
+
+  tableBody.innerHTML = data
+    .map((u) => {
+      const p = u.user_profiles || {}; // ← perbaikan di sini
+      const hasData = p.asal_sekolah || p.npsn || p.link_spreadsheet || p.no_hp;
+      const statusProfil = hasData
+        ? '<span class="text-green-600 font-semibold">Sudah</span>'
+        : '<span class="text-red-600 font-semibold">Belum</span>';
+
+      return `
         <tr>
-          <th>Email</th>
-          <th>Nama</th>
-          <th>Asal Sekolah</th>
-          <th>NPSN</th>
-          <th>Link Spreadsheet</th>
-          <th>No HP</th>
-          <th>Status Profil</th>
-          <th>Aksi</th>
+          <td>${u.email}</td>
+          <td>${u.name || '-'}</td>
+          <td>${p.asal_sekolah || '-'}</td>
+          <td>${p.npsn || '-'}</td>
+          <td>${p.link_spreadsheet ? `<a href="${p.link_spreadsheet}" target="_blank" class="text-blue-600 underline">${p.link_spreadsheet}</a>` : '-'}</td>
+          <td>${p.no_hp || '-'}</td>
+          <td>${statusProfil}</td>
+          <td>
+            <button class="hapusBtn bg-red-500 text-white px-2 py-1 rounded" data-id="${u.id}">
+              Hapus
+            </button>
+          </td>
         </tr>
       `;
-    }
+    })
+    .join('');
 
-    tableBody.innerHTML = data
-      .map((u) => {
-        // Ambil data profil pertama jika ada
-        const p = Array.isArray(u.user_profiles) && u.user_profiles.length > 0
-          ? u.user_profiles[0]
-          : {};
-
-        // Tentukan status profil
-        const hasData = p.asal_sekolah || p.npsn || p.link_spreadsheet || p.no_hp;
-        const statusProfil = hasData
-          ? '<span class="text-green-600 font-semibold">Sudah</span>'
-          : '<span class="text-red-600 font-semibold">Belum</span>';
-
-        return `
-          <tr>
-            <td>${u.email}</td>
-            <td>${u.name || '-'}</td>
-            <td>${p.asal_sekolah || '-'}</td>
-            <td>${p.npsn || '-'}</td>
-            <td>${p.link_spreadsheet ? `<a href="${p.link_spreadsheet}" target="_blank" class="text-blue-600 underline">${p.link_spreadsheet}</a>` : '-'}</td>
-            <td>${p.no_hp || '-'}</td>
-            <td>${statusProfil}</td>
-            <td>
-              <button class="hapusBtn bg-red-500 text-white px-2 py-1 rounded" data-id="${u.id}">
-                Hapus
-              </button>
-            </td>
-          </tr>
-        `;
-      })
-      .join('');
-
-    document.querySelectorAll('.hapusBtn').forEach((btn) =>
-      btn.addEventListener('click', async (e) => {
-        const id = e.target.dataset.id;
-        if (confirm('Yakin ingin menghapus user ini?')) {
-          await hapusUser(id);
-        }
-      })
-    );
-  } catch (err) {
-    console.error('Unexpected error loading users:', err);
-  }
+  document.querySelectorAll('.hapusBtn').forEach((btn) =>
+    btn.addEventListener('click', async (e) => {
+      const id = e.target.dataset.id;
+      if (confirm('Yakin ingin menghapus user ini?')) {
+        await hapusUser(id);
+      }
+    })
+  );
 }
+
 
 async function hapusUser(userId) {
   try {
