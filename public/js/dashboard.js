@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabase = createClient(
   'https://esmkveggutxzklavspnn.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzbWt2ZWdndXR4emtsYXZzcG5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzODIyNTQsImV4cCI6MjA3NTk1ODI1NH0.18vlPWg1S_6ocoCWKaCh_KU41TbipXyQNS2r5GKRQ44'
+  'YOUR_SUPABASE_ANON_KEY'
 );
 
 const userEmail = document.getElementById('userEmail');
@@ -29,14 +29,12 @@ async function init() {
 
   user = data.session.user;
 
-  // Ambil role dari tabel users
-  const { data: userData, error: roleError } = await supabase
+  // Ambil role
+  const { data: userData } = await supabase
     .from('users')
     .select('role, name')
     .eq('id', user.id)
     .maybeSingle();
-
-  if (roleError) console.error('Role error:', roleError.message);
 
   role = userData?.role || 'user';
   const displayName = userData?.name || user.email;
@@ -68,45 +66,29 @@ async function loadUserData() {
 }
 
 saveBtn.onclick = async () => {
-  // Validasi input
-  if (!asalSekolah.value || !npsn.value || !linkSpreadsheet.value || !noHp.value) {
+  if (!asalSekolah.value || !npsn.value || !linkSpreadsheet.value || !noHp.value)
     return alert('Lengkapi semua data!');
-  }
 
-  try {
-    // Upsert user profile
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .upsert(
-        [{
-          user_id: user.id,
-          asal_sekolah: asalSekolah.value,
-          npsn: npsn.value,
-          link_spreadsheet: linkSpreadsheet.value,
-          no_hp: noHp.value,
-          updated_at: new Date().toISOString(),
-        }],
-        { onConflict: ['user_id'] } // <- pastikan update jika user_id sudah ada
-      );
+  const { error } = await supabase
+    .from('user_profiles')
+    .upsert([{
+      user_id: user.id,
+      asal_sekolah: asalSekolah.value,
+      npsn: npsn.value,
+      link_spreadsheet: linkSpreadsheet.value,
+      no_hp: noHp.value,
+      updated_at: new Date().toISOString(),
+    }], { onConflict: ['user_id'] });
 
-    if (error) {
-      console.error('Error upsert:', error);
-      return alert('Gagal simpan data: ' + error.message);
-    }
-
+  if (error) alert('Gagal simpan data: ' + error.message);
+  else {
     alert('Data berhasil disimpan!');
-
-    // Refresh data form
     loadUserData();
-  } catch (err) {
-    console.error('Unexpected error:', err);
-    alert('Terjadi kesalahan saat menyimpan data.');
   }
 };
 
-
 async function loadAllUsers() {
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from('users')
     .select(`
       id,
@@ -121,78 +103,56 @@ async function loadAllUsers() {
       )
     `);
 
-  if (error) {
-    console.error('Error loading users:', error.message);
-    return;
-  }
+  const tableHead = document.getElementById('tableHead');
+  tableHead.innerHTML = `
+    <tr>
+      <th class="border px-2 py-1">Email</th>
+      <th class="border px-2 py-1">Nama</th>
+      <th class="border px-2 py-1">Asal Sekolah</th>
+      <th class="border px-2 py-1">NPSN</th>
+      <th class="border px-2 py-1">Link Spreadsheet</th>
+      <th class="border px-2 py-1">No HP</th>
+      <th class="border px-2 py-1">Status</th>
+      <th class="border px-2 py-1">Aksi</th>
+    </tr>
+  `;
 
-  const tableHead = document.querySelector('#tableHead');
-  if (tableHead && tableHead.innerHTML.trim() === '') {
-    tableHead.innerHTML = `
+  tableBody.innerHTML = data.map(u => {
+    const p = u.user_profiles || {};
+    const hasData = p.asal_sekolah || p.npsn || p.link_spreadsheet || p.no_hp;
+    const status = hasData
+      ? '<span class="text-green-600 font-semibold">Sudah</span>'
+      : '<span class="text-red-600 font-semibold">Belum</span>';
+
+    return `
       <tr>
-        <th>Email</th>
-        <th>Nama</th>
-        <th>Asal Sekolah</th>
-        <th>NPSN</th>
-        <th>Link Spreadsheet</th>
-        <th>No HP</th>
-        <th>Status Profil</th>
-        <th>Aksi</th>
+        <td class="border px-2 py-1">${u.email}</td>
+        <td class="border px-2 py-1">${u.name || '-'}</td>
+        <td class="border px-2 py-1">${p.asal_sekolah || '-'}</td>
+        <td class="border px-2 py-1">${p.npsn || '-'}</td>
+        <td class="border px-2 py-1">${p.link_spreadsheet ? `<a href="${p.link_spreadsheet}" target="_blank" class="text-blue-600 underline">${p.link_spreadsheet}</a>` : '-'}</td>
+        <td class="border px-2 py-1">${p.no_hp || '-'}</td>
+        <td class="border px-2 py-1">${status}</td>
+        <td class="border px-2 py-1">
+          <button class="hapusBtn bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700" data-id="${u.id}">Hapus</button>
+        </td>
       </tr>
     `;
-  }
+  }).join('');
 
-  tableBody.innerHTML = data
-    .map((u) => {
-      const p = u.user_profiles || {}; // ← perbaikan di sini
-      const hasData = p.asal_sekolah || p.npsn || p.link_spreadsheet || p.no_hp;
-      const statusProfil = hasData
-        ? '<span class="text-green-600 font-semibold">Sudah</span>'
-        : '<span class="text-red-600 font-semibold">Belum</span>';
-
-      return `
-        <tr>
-          <td>${u.email}</td>
-          <td>${u.name || '-'}</td>
-          <td>${p.asal_sekolah || '-'}</td>
-          <td>${p.npsn || '-'}</td>
-          <td>${p.link_spreadsheet ? `<a href="${p.link_spreadsheet}" target="_blank" class="text-blue-600 underline">${p.link_spreadsheet}</a>` : '-'}</td>
-          <td>${p.no_hp || '-'}</td>
-          <td>${statusProfil}</td>
-          <td>
-            <button class="hapusBtn bg-red-500 text-white px-2 py-1 rounded" data-id="${u.id}">
-              Hapus
-            </button>
-          </td>
-        </tr>
-      `;
-    })
-    .join('');
-
-  document.querySelectorAll('.hapusBtn').forEach((btn) =>
-    btn.addEventListener('click', async (e) => {
+  document.querySelectorAll('.hapusBtn').forEach(btn =>
+    btn.addEventListener('click', async e => {
       const id = e.target.dataset.id;
-      if (confirm('Yakin ingin menghapus user ini?')) {
-        await hapusUser(id);
-      }
+      if (confirm('Yakin ingin menghapus user ini?')) await hapusUser(id);
     })
   );
 }
 
-
 async function hapusUser(userId) {
-  try {
-    // Hapus dari user_profiles
-    await supabase.from('user_profiles').delete().eq('user_id', userId);
-
-    // Hapus dari users
-    await supabase.from('users').delete().eq('id', userId);
-
-    alert('User berhasil dihapus!');
-    loadAllUsers();
-  } catch (err) {
-    alert('Gagal hapus user: ' + err.message);
-  }
+  await supabase.from('user_profiles').delete().eq('user_id', userId);
+  await supabase.from('users').delete().eq('id', userId);
+  alert('User berhasil dihapus!');
+  loadAllUsers();
 }
 
 logoutBtn.onclick = async () => {
