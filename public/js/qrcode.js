@@ -1,6 +1,5 @@
-import QRCode from 'https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js';
-
 document.addEventListener('DOMContentLoaded', () => {
+  // ambil elemen
   const generateBtn = document.getElementById('generateQRBtn');
   const qrContainer = document.getElementById('qrCode');
   const downloadLink = document.getElementById('downloadQR');
@@ -8,21 +7,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (!generateBtn || !qrContainer || !linkSpreadsheetInput) return;
 
+  // tambahkan listener
   generateBtn.addEventListener('click', async () => {
     const link = linkSpreadsheetInput.value.trim();
     if (!link) return alert('Isi link spreadsheet terlebih dahulu!');
 
-    // Hapus QR lama
+    // hapus QR lama
     qrContainer.innerHTML = '';
     downloadLink.classList.add('hidden');
 
-    // Generate QR ke canvas
+    // generate QR ke canvas
     const canvas = document.createElement('canvas');
-    await QRCode.toCanvas(canvas, link, { width: 200 });
+
+    // gunakan QRCode.js versi non-module
+    new QRCode(canvas, {
+      text: link,
+      width: 200,
+      height: 200,
+      colorDark: "#000000",
+      colorLight: "#ffffff",
+    });
+
     qrContainer.appendChild(canvas);
 
-    // Siapkan download
-    downloadLink.href = canvas.toDataURL('image/png');
+    // siapkan download
+    downloadLink.href = canvas.toDataURL("image/png");
     downloadLink.classList.remove('hidden');
   });
 });
