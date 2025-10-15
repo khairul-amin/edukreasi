@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabase = createClient(
   'https://esmkveggutxzklavspnn.supabase.co',
-  'YOUR_ANON_KEY_HERE' // ganti dengan key Supabase mu
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzbWt2ZWdndXR4emtsYXZzcG5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzODIyNTQsImV4cCI6MjA3NTk1ODI1NH0.18vlPWg1S_6ocoCWKaCh_KU41TbipXyQNS2r5GKRQ44'
 );
 
 const userEmail = document.getElementById('userEmail');
@@ -68,12 +68,14 @@ async function loadUserData() {
 }
 
 saveBtn.onclick = async () => {
+  // Validasi input
   if (!asalSekolah.value || !npsn.value || !linkSpreadsheet.value || !noHp.value) {
     return alert('Lengkapi semua data!');
   }
 
   try {
-    const { error } = await supabase
+    // Upsert user profile
+    const { data, error } = await supabase
       .from('user_profiles')
       .upsert(
         [{
@@ -84,7 +86,7 @@ saveBtn.onclick = async () => {
           no_hp: noHp.value,
           updated_at: new Date().toISOString(),
         }],
-        { onConflict: ['user_id'] }
+        { onConflict: ['user_id'] } // <- pastikan update jika user_id sudah ada
       );
 
     if (error) {
@@ -93,6 +95,8 @@ saveBtn.onclick = async () => {
     }
 
     alert('Data berhasil disimpan!');
+
+    // Refresh data form
     loadUserData();
   } catch (err) {
     console.error('Unexpected error:', err);
@@ -100,86 +104,98 @@ saveBtn.onclick = async () => {
   }
 };
 
+
 async function loadAllUsers() {
-  const { data, error } = await supabase
-    .from('users')
-    .select(`
-      id,
-      email,
-      name,
-      role,
-      user_profiles (
-        asal_sekolah,
-        npsn,
-        link_spreadsheet,
-        no_hp
-      )
-    `);
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select(`
+        id,
+        email,
+        name,
+        role,
+        user_profiles (
+          asal_sekolah,
+          npsn,
+          link_spreadsheet,
+          no_hp
+        )
+      `);
 
-  if (error) {
-    console.error('Error loading users:', error.message);
-    return;
-  }
+    if (error) {
+      console.error('Error loading users:', error.message);
+      return;
+    }
 
-  // Header tabel
-  const tableHead = document.querySelector('#tableHead');
-  if (tableHead && tableHead.innerHTML.trim() === '') {
-    tableHead.innerHTML = `
-      <tr>
-        <th>Email</th>
-        <th>Nama</th>
-        <th>Asal Sekolah</th>
-        <th>NPSN</th>
-        <th>Link Spreadsheet</th>
-        <th>No HP</th>
-        <th>Status Profil</th>
-        <th>Aksi</th>
-      </tr>
-    `;
-  }
-
-  // Isi tabel
-  tableBody.innerHTML = data
-    .map(u => {
-      const p = u.user_profiles || {}; // objek atau {} jika null
-      const hasData = p.asal_sekolah || p.npsn || p.link_spreadsheet || p.no_hp;
-      const statusProfil = hasData
-        ? '<span class="text-green-600 font-semibold">Sudah</span>'
-        : '<span class="text-red-600 font-semibold">Belum</span>';
-
-      return `
+    const tableHead = document.querySelector('#tableHead');
+    if (tableHead && tableHead.innerHTML.trim() === '') {
+      tableHead.innerHTML = `
         <tr>
-          <td>${u.email}</td>
-          <td>${u.name || '-'}</td>
-          <td>${p.asal_sekolah || '-'}</td>
-          <td>${p.npsn || '-'}</td>
-          <td>${p.link_spreadsheet ? `<a href="${p.link_spreadsheet}" target="_blank" class="text-blue-600 underline">${p.link_spreadsheet}</a>` : '-'}</td>
-          <td>${p.no_hp || '-'}</td>
-          <td>${statusProfil}</td>
-          <td>
-            <button class="hapusBtn bg-red-500 text-white px-2 py-1 rounded" data-id="${u.id}">
-              Hapus
-            </button>
-          </td>
+          <th>Email</th>
+          <th>Nama</th>
+          <th>Asal Sekolah</th>
+          <th>NPSN</th>
+          <th>Link Spreadsheet</th>
+          <th>No HP</th>
+          <th>Status Profil</th>
+          <th>Aksi</th>
         </tr>
       `;
-    })
-    .join('');
+    }
 
-  document.querySelectorAll('.hapusBtn').forEach(btn =>
-    btn.addEventListener('click', async e => {
-      const id = e.target.dataset.id;
-      if (confirm('Yakin ingin menghapus user ini?')) {
-        await hapusUser(id);
-      }
-    })
-  );
+    tableBody.innerHTML = data
+      .map((u) => {
+        // Ambil data profil pertama jika ada
+        const p = Array.isArray(u.user_profiles) && u.user_profiles.length > 0
+          ? u.user_profiles[0]
+          : {};
+
+        // Tentukan status profil
+        const hasData = p.asal_sekolah || p.npsn || p.link_spreadsheet || p.no_hp;
+        const statusProfil = hasData
+          ? '<span class="text-green-600 font-semibold">Sudah</span>'
+          : '<span class="text-red-600 font-semibold">Belum</span>';
+
+        return `
+          <tr>
+            <td>${u.email}</td>
+            <td>${u.name || '-'}</td>
+            <td>${p.asal_sekolah || '-'}</td>
+            <td>${p.npsn || '-'}</td>
+            <td>${p.link_spreadsheet ? `<a href="${p.link_spreadsheet}" target="_blank" class="text-blue-600 underline">${p.link_spreadsheet}</a>` : '-'}</td>
+            <td>${p.no_hp || '-'}</td>
+            <td>${statusProfil}</td>
+            <td>
+              <button class="hapusBtn bg-red-500 text-white px-2 py-1 rounded" data-id="${u.id}">
+                Hapus
+              </button>
+            </td>
+          </tr>
+        `;
+      })
+      .join('');
+
+    document.querySelectorAll('.hapusBtn').forEach((btn) =>
+      btn.addEventListener('click', async (e) => {
+        const id = e.target.dataset.id;
+        if (confirm('Yakin ingin menghapus user ini?')) {
+          await hapusUser(id);
+        }
+      })
+    );
+  } catch (err) {
+    console.error('Unexpected error loading users:', err);
+  }
 }
 
 async function hapusUser(userId) {
   try {
+    // Hapus dari user_profiles
     await supabase.from('user_profiles').delete().eq('user_id', userId);
+
+    // Hapus dari users
     await supabase.from('users').delete().eq('id', userId);
+
     alert('User berhasil dihapus!');
     loadAllUsers();
   } catch (err) {
