@@ -29,18 +29,22 @@ supabase.auth.getSession().then(async ({ data }) => {
       .eq('id', user.id)
       .single();
 
-    if (!existingUser) {
-      // Tentukan role
-      const role =
-        user.email === 'khairul.amin1046@guru.sd.belajar.id' ? 'superadmin' : 'user';
+if (!existingUser) {
+  // --- Tentukan role otomatis ---
+  const role = (user.email === 'khairul.amin1046@guru.sd.belajar.id')
+    ? 'superadmin'
+    : 'user';
 
-      await supabase.from('users').insert({
-        id: user.id,
-        email: user.email,
-        name: user.user_metadata.full_name || user.email,
-        role,
-      });
-    }
+  // --- Simpan user baru ke tabel users ---
+  const { error: insertError } = await supabase.from('users').insert({
+    id: user.id,
+    email: user.email,
+    name: user.user_metadata.full_name || user.email,
+    role,
+  });
+
+  if (insertError) console.error('Gagal simpan user baru:', insertError.message);
+}
 
     window.location.href = '/admin/dashboard';
   }
