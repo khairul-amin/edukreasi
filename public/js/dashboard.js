@@ -71,14 +71,19 @@ saveBtn.onclick = async () => {
   if (!asalSekolah.value || !npsn.value || !linkSpreadsheet.value || !noHp.value)
     return alert('Lengkapi semua data!');
 
-  const { error } = await supabase.from('user_profiles').upsert({
-    user_id: user.id,
-    asal_sekolah: asalSekolah.value,
-    npsn: npsn.value,
-    link_spreadsheet: linkSpreadsheet.value,
-    no_hp: noHp.value,
-    updated_at: new Date().toISOString(),
-  });
+const { error } = await supabase
+  .from('user_profiles')
+  .upsert(
+    [{
+      user_id: user.id,
+      asal_sekolah: asalSekolah.value,
+      npsn: npsn.value,
+      link_spreadsheet: linkSpreadsheet.value,
+      no_hp: noHp.value,
+      updated_at: new Date().toISOString(),
+    }],
+    { onConflict: ['user_id'] } // <-- penting, ini untuk menangani unique key
+  );
 
   if (error) alert('Gagal simpan data: ' + error.message);
   else alert('Data berhasil disimpan!');
