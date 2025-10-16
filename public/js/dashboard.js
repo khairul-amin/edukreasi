@@ -18,14 +18,6 @@ const npsn = document.getElementById('npsn');
 const linkSpreadsheet = document.getElementById('link');
 const noHp = document.getElementById('hp');
 
-// Elemen QR
-const qrCodeContainer = document.getElementById('qrCode');
-const generateBtn = document.getElementById('generateQRBtn');
-const downloadLink = document.getElementById('downloadQR');
-
-// Sembunyikan QR saat awal
-if (qrCodeContainer) qrCodeContainer.parentElement.style.display = 'none';
-
 let user = null;
 let role = 'user';
 
@@ -67,8 +59,6 @@ async function loadUserData() {
     linkSpreadsheet.value = data.link_spreadsheet || '';
     noHp.value = data.no_hp || '';
   }
-
-  // jangan generate QR otomatis di sini lagi ❌
 }
 
 saveBtn.onclick = async () => {
@@ -92,42 +82,6 @@ saveBtn.onclick = async () => {
     loadUserData();
   }
 };
-
-// ✅ Generate QR hanya saat tombol diklik
-generateBtn?.addEventListener('click', () => {
-  const link = linkSpreadsheet.value.trim();
-  if (!link) return alert('Isi link spreadsheet terlebih dahulu!');
-  generateQRCode(link);
-});
-
-// ✅ Fungsi QR yang benar
-function generateQRCode(link) {
-  qrCodeContainer.innerHTML = '';
-  downloadLink.classList.add('hidden');
-
-  if (!link) return;
-
-  const qr = new QRCode(qrCodeContainer, {
-    text: link,
-    width: 200,
-    height: 200,
-    colorDark: "#000000",
-    colorLight: "#ffffff",
-  });
-
-  qrCodeContainer.parentElement.style.display = 'block';
-
-  // tunggu QR selesai dibuat
-  setTimeout(() => {
-    const img = qrCodeContainer.querySelector('img') || qrCodeContainer.querySelector('canvas');
-    if (img) {
-      // konversi ke base64 dan tampilkan tombol download
-      const dataUrl = img.src || img.toDataURL("image/png");
-      downloadLink.href = dataUrl;
-      downloadLink.classList.remove('hidden');
-    }
-  }, 500);
-}
 
 // Load superadmin table
 async function loadAllUsers() {
