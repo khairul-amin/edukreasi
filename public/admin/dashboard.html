@@ -1,70 +1,82 @@
 <!DOCTYPE html>
-<html lang="id" x-data="{ darkMode: false }"
-      x-init="
-         darkMode = JSON.parse(localStorage.getItem('darkMode'));
-         $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
-      :class="{'dark bg-gray-900': darkMode}">
+<html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard PSI Fathir Alfath</title>
-  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script type="module" src="../js/dashboard.js" defer></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard - Media Brilliant</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
 </head>
-<body class="font-sans bg-gray-100 text-gray-800">
+<body class="bg-gray-100 min-h-screen flex flex-col">
 
-  <!-- Sidebar -->
-  <aside class="w-64 bg-white shadow-md h-screen fixed">
-    <div class="p-4 font-bold text-lg">Dashboard</div>
-    <nav class="mt-6">
-      <a href="#" class="block px-4 py-2 hover:bg-gray-200 rounded">Dashboard</a>
-      <a href="#" class="block px-4 py-2 hover:bg-gray-200 rounded">Users</a>
-    </nav>
-  </aside>
+  <!-- Header -->
+  <header class="bg-blue-700 text-white p-4 flex justify-between items-center">
+    <h1 class="text-xl font-bold">Dashboard Admin</h1>
+    <div class="flex items-center space-x-4">
+      <span id="userEmail" class="font-medium"></span>
+      <button id="logoutBtn" class="bg-red-500 px-3 py-1 rounded hover:bg-red-600">Logout</button>
+    </div>
+  </header>
 
-  <!-- Main Content -->
-  <div class="ml-64 p-6">
-    <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold">Dashboard</h1>
-      <div class="flex items-center gap-4">
-        <p id="userEmail" class="text-gray-600"></p>
-        <button id="logoutBtn" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">Logout</button>
+  <!-- Main content -->
+  <main class="flex-1 p-4 space-y-6">
+
+    <!-- Metrics Cards (Superadmin Only) -->
+    <div id="metricCards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 hidden"></div>
+
+    <!-- Admin Table (Superadmin Only) -->
+    <section id="adminTable" class="hidden">
+      <h2 class="text-lg font-semibold mb-2">Daftar Pengguna</h2>
+      <div class="overflow-x-auto bg-white rounded shadow">
+        <table class="min-w-full border-collapse border border-gray-300">
+          <thead id="tableHead" class="bg-gray-200 text-gray-700"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
       </div>
-    </div>
+    </section>
 
-    <!-- Metric Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="metricCards"></div>
+    <!-- User Form (User Only) -->
+    <section id="userForm" class="hidden max-w-md bg-white p-6 rounded shadow">
+      <h2 class="text-lg font-semibold mb-4">Data Sekolah</h2>
 
-    <!-- Form Input User -->
-    <div id="userForm" class="hidden bg-white p-6 rounded shadow mb-6 max-w-md">
-      <h2 class="text-lg font-semibold mb-4">Input Data Sekolah</h2>
-      <input id="nama" placeholder="Nama Sekolah" class="border p-2 rounded w-full mb-2">
-      <input id="npsn" placeholder="NPSN" class="border p-2 rounded w-full mb-2">
-      <input id="link" placeholder="Link Spreadsheet" class="border p-2 rounded w-full mb-2">
-      <input id="hp" placeholder="Nomor HP" class="border p-2 rounded w-full mb-4">
-      <button id="saveBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Simpan</button>
-
-      <!-- QR Code -->
-      <div class="mt-4">
-        <h3 class="font-semibold mb-2">QR Code</h3>
-        <button id="generateQRBtn" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 mb-2">Generate QR</button>
-        <div id="qrCode" class="p-2 bg-gray-100 inline-block"></div>
-        <a id="downloadQR" class="hidden mt-2 inline-block bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700" download="qrcode.png">Download QR</a>
+      <div class="space-y-3">
+        <input id="nama" type="text" placeholder="Nama Sekolah" class="w-full border rounded p-2">
+        <input id="npsn" type="text" placeholder="NPSN" class="w-full border rounded p-2">
+        <input id="link" type="text" placeholder="Link Spreadsheet" class="w-full border rounded p-2">
+        <input id="hp" type="text" placeholder="No. HP" class="w-full border rounded p-2">
       </div>
-    </div>
 
-    <!-- Tabel Superadmin -->
-    <div id="adminTable" class="hidden bg-white rounded shadow p-4 overflow-auto">
-      <h2 class="text-lg font-semibold mb-4">Data Semua User</h2>
-      <table class="min-w-full border border-gray-300 table-auto">
-        <thead id="tableHead" class="bg-gray-200"></thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-    </div>
-  </div>
+      <div class="mt-4 flex gap-2">
+        <button id="saveBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Simpan</button>
+      </div>
+
+      <!-- QR Section -->
+      <div class="mt-6 border-t pt-4">
+        <h3 class="text-md font-semibold mb-2">QR Code</h3>
+
+        <!-- Wrapper agar bisa di-hide -->
+        <div id="qrWrapper" class="text-center space-y-2">
+          <div id="qrCode" class="flex justify-center"></div>
+          <a id="downloadQR" href="#" download="qrcode.png"
+             class="hidden bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700 inline-block">Download QR</a>
+        </div>
+
+        <div class="mt-4 flex justify-center">
+          <button id="generateQRBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+            Generate QR
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-200 text-center text-gray-600 py-3 text-sm">
+    &copy; 2025 Media Brilliant. All rights reserved.
+  </footer>
+
+  <!-- JS -->
+  <script type="module" src="../js/dashboard.js"></script>
 </body>
 </html>
