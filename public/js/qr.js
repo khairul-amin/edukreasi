@@ -15,7 +15,7 @@ if (qrCodeContainer) qrCodeContainer.parentElement.style.display = 'none';
 
 // 🔒 Fungsi buat hash acak kuat (10–15 karakter)
 function generateSecureHash() {
-  const length = Math.floor(Math.random() * 6) + 10; // 10–15 karakter
+  const length = Math.floor(Math.random() * 6) + 15;
   const charset =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_-+=<>?';
   let result = '';
@@ -55,7 +55,7 @@ generateBtn?.addEventListener('click', async () => {
   if (error) return alert('Gagal menyimpan QR ke database: ' + error.message);
 
   // teks di dalam QR
-  const qrText = `edukreasi|${hash}`;
+  const qrText = `${hash}`;
 
   // tampilkan QR
   qrCodeContainer.innerHTML = '';
