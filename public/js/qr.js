@@ -10,32 +10,52 @@ const qrCodeContainer = document.getElementById('qrCode');
 const downloadLink = document.getElementById('downloadQR');
 const linkSpreadsheet = document.getElementById('link');
 
-// sembunyikan saat awal
+// 🔹 Sembunyikan QR di awal
 if (qrCodeContainer) qrCodeContainer.parentElement.style.display = 'none';
 
+// 🔒 Fungsi buat hash acak kuat (10–15 karakter)
+function generateSecureHash() {
+  const length = Math.floor(Math.random() * 6) + 10; // 10–15 karakter
+  const charset =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_-+=<>?';
+  let result = '';
+  const randomValues = new Uint32Array(length);
+  window.crypto.getRandomValues(randomValues);
+  for (let i = 0; i < length; i++) {
+    result += charset[randomValues[i] % charset.length];
+  }
+  return result;
+}
+
+// 🔹 Event: klik tombol Generate
 generateBtn?.addEventListener('click', async () => {
   const link = linkSpreadsheet.value.trim();
   if (!link) return alert('Isi link spreadsheet terlebih dahulu!');
 
+  // ambil user aktif
   const { data: sessionData } = await supabase.auth.getSession();
   if (!sessionData.session) return alert('Sesi login habis, silakan login ulang.');
   const userId = sessionData.session.user.id;
 
-  // buat hash pendek (6 karakter)
-  const hash = Math.random().toString(36).substring(2, 8);
+  // buat hash acak aman
+  const hash = generateSecureHash();
 
-  // simpan hash ke tabel qr_map
-  const { error } = await supabase.from('qr_map').upsert([
-    {
-      user_id: userId,
-      hash: hash,
-      link_asli: link
-    }
-  ], { onConflict: ['user_id'] });
+  // simpan ke tabel Supabase
+  const { error } = await supabase.from('qr_map').upsert(
+    [
+      {
+        user_id: userId,
+        hash: hash,
+        link_asli: link,
+      },
+    ],
+    { onConflict: ['user_id'] }
+  );
 
   if (error) return alert('Gagal menyimpan QR ke database: ' + error.message);
 
-  const qrText = `EXAMPSI|${hash}`;
+  // teks di dalam QR
+  const qrText = `edukreasi|${hash}`;
 
   // tampilkan QR
   qrCodeContainer.innerHTML = '';
@@ -45,16 +65,17 @@ generateBtn?.addEventListener('click', async () => {
     text: qrText,
     width: 200,
     height: 200,
-    colorDark: "#000000",
-    colorLight: "#ffffff",
+    colorDark: '#000000',
+    colorLight: '#ffffff',
   });
 
   qrCodeContainer.parentElement.style.display = 'block';
 
+  // tombol download muncul otomatis
   setTimeout(() => {
     const img = qrCodeContainer.querySelector('img') || qrCodeContainer.querySelector('canvas');
     if (img) {
-      const dataUrl = img.src || img.toDataURL("image/png");
+      const dataUrl = img.src || img.toDataURL('image/png');
       downloadLink.href = dataUrl;
       downloadLink.classList.remove('hidden');
     }
