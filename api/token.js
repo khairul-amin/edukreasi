@@ -13,13 +13,17 @@ export default async function handler(req, res) {
 
     console.log("NPSN diterima:", k);
 
+const cleanK = k.trim();
+
 const { data: sekolah, error } = await supabase
   .from("user_profiles")
-  .select("link_spreadsheet, asal_sekolah")
-  .ilike("npsn", `%${k.trim()}%`)
+  .select("link_spreadsheet, asal_sekolah, npsn")
+  .ilike("npsn", `%${cleanK}%`)
   .maybeSingle();
 
-    console.log("Hasil query:", sekolah, error);
+console.log("[info] NPSN diterima:", cleanK);
+console.log("[info] Hasil query:", sekolah, error);
+
 
     if (error) throw error;
     if (!sekolah) return res.status(404).json({ error: "Sekolah tidak ditemukan" });
