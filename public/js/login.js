@@ -31,7 +31,7 @@ supabase.auth.getSession().then(async ({ data }) => {
 
 if (!existingUser) {
   // --- Tentukan role otomatis ---
-  const role = (user.email === 'khairul.amin1046@guru.sd.belajar.id')
+  const role = (user.email === 'khairulamin2409@gmail.com')
     ? 'superadmin'
     : 'user';
 
