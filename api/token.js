@@ -13,11 +13,11 @@ export default async function handler(req, res) {
 
     console.log("NPSN diterima:", k);
 
-    const { data: sekolah, error } = await supabase
-      .from("user_profiles")
-      .select("link_spreadsheet, asal_sekolah")
-      .ilike("npsn", `%${k.trim()}%`)
-      .maybeSingle();
+const { data: sekolah, error } = await supabase
+  .from("user_profiles")
+  .select("link_spreadsheet, asal_sekolah")
+  .ilike("npsn", `%${k.trim()}%`)
+  .maybeSingle();
 
     console.log("Hasil query:", sekolah, error);
 
