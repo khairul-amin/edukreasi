@@ -1,6 +1,13 @@
 {
-  "rewrites": [
-    { "source": "/admin", "destination": "/admin/login.html" },
-    { "source": "/admin/dashboard", "destination": "/admin/dashboard.html" }
+  "version": 2,
+  "builds": [
+    { "src": "api/token.js", "use": "@vercel/node" },
+    { "src": "public/**/*", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1.js" },
+    { "src": "/admin", "dest": "/public/admin/login.html" },
+    { "src": "/admin/dashboard", "dest": "/public/admin/dashboard.html" },
+    { "src": "/(.*)", "dest": "/public/$1" }
   ]
 }
