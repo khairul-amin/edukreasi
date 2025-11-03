@@ -21,6 +21,12 @@ const noHp = document.getElementById('hp');
 let user = null;
 let role = 'user';
 
+// 🟩 elemen baru
+const generateLinkBtn = document.getElementById('generateLinkBtn');
+const linkTokenWrapper = document.getElementById('linkTokenWrapper');
+const linkToken = document.getElementById('linkToken');
+const copyLinkBtn = document.getElementById('copyLinkBtn');
+
 async function init() {
   const { data } = await supabase.auth.getSession();
   if (!data.session) return window.location.href = '/admin';
@@ -83,7 +89,39 @@ saveBtn.onclick = async () => {
   }
 };
 
-// Load superadmin table
+// 🟩 fungsi hashing
+async function hashNPSN(npsn) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(npsn);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 12);
+}
+
+// 🟩 tombol generate link token
+if (generateLinkBtn) {
+  generateLinkBtn.onclick = async () => {
+    if (!npsn.value) {
+      alert("Isi NPSN terlebih dahulu!");
+      return;
+    }
+
+    const hashed = await hashNPSN(npsn.value.trim());
+    const baseUrl = window.location.origin;
+    const tokenUrl = `${baseUrl}/token.html?k=${hashed}`;
+
+    linkTokenWrapper.classList.remove("hidden");
+    linkToken.href = tokenUrl;
+    linkToken.textContent = tokenUrl;
+
+    copyLinkBtn.onclick = () => {
+      navigator.clipboard.writeText(tokenUrl);
+      alert("Link token disalin ke clipboard!");
+    };
+  };
+}
+
+// ---- Admin ----
 async function loadAllUsers() {
   const { data } = await supabase.from('users')
     .select(`
@@ -144,7 +182,6 @@ async function loadAllUsers() {
   );
 }
 
-// Metrics cards
 async function loadMetrics() {
   const { data } = await supabase.from('users').select('*');
   const totalUsers = data.length;
