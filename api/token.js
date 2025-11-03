@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import crypto from "crypto";
 
 // 🔹 Konfigurasi Supabase
 const supabase = createClient(
@@ -8,31 +9,31 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
   try {
-    const { k } = req.query;
-    if (!k) return res.status(400).json({ error: "Parameter k (NPSN) wajib diisi" });
+    const { h } = req.query;
+    if (!h) return res.status(400).json({ error: "Parameter h (hash) wajib diisi" });
 
-    console.log("NPSN diterima:", k);
+    console.log("[info] Hash diterima:", h);
 
-const cleanK = k.trim();
-
-const { data: sekolah, error } = await supabase
-  .from("user_profiles")
-  .select("link_spreadsheet, asal_sekolah, npsn")
-  .ilike("npsn", `%${cleanK}%`)
-  .maybeSingle();
-
-console.log("[info] NPSN diterima:", cleanK);
-console.log("[info] Hasil query:", sekolah, error);
-
+    // 🔹 Ambil semua NPSN dari database
+    const { data: daftar, error } = await supabase
+      .from("user_profiles")
+      .select("npsn, asal_sekolah, link_spreadsheet");
 
     if (error) throw error;
+
+    // 🔹 Cari data yang hash-nya cocok
+    const sekolah = daftar.find((item) => {
+      const hashed = crypto.createHash("sha256").update(item.npsn.trim()).digest("hex").slice(0, 12);
+      return hashed === h.trim();
+    });
+
+    console.log("[info] Sekolah ditemukan:", sekolah?.asal_sekolah);
+
     if (!sekolah) return res.status(404).json({ error: "Sekolah tidak ditemukan" });
+    if (!sekolah.link_spreadsheet) return res.status(400).json({ error: "Link spreadsheet tidak ditemukan" });
 
-    const sheetUrl = sekolah.link_spreadsheet;
-    if (!sheetUrl) return res.status(400).json({ error: "Link spreadsheet tidak ditemukan" });
-
-    const csvUrl = sheetUrl.replace("/pubhtml", "/pub?output=csv");
-
+    // 🔹 Ambil token dari Google Sheets
+    const csvUrl = sekolah.link_spreadsheet.replace("/pubhtml", "/pub?output=csv");
     const response = await fetch(csvUrl, { cache: "no-store" });
     if (!response.ok) throw new Error("Gagal fetch data dari Google Sheets");
 
@@ -51,4 +52,3 @@ console.log("[info] Hasil query:", sekolah, error);
     res.status(500).json({ error: "Gagal ambil token dari server" });
   }
 }
-
