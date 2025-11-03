@@ -39,7 +39,7 @@
     <!-- Metric Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="metricCards"></div>
 
-    <!-- User Form (User Only) -->
+    <!-- User Form -->
     <section id="userForm" class="hidden max-w-md bg-white p-6 rounded shadow">
       <h2 class="text-lg font-semibold mb-4">Data Sekolah</h2>
 
@@ -56,23 +56,35 @@
 
       <!-- QR Section -->
       <div class="mt-6 border-t pt-4">
-        <!-- Wrapper agar bisa di-hide -->
         <div id="qrWrapper" class="text-center space-y-2">
           <div id="qrCode" class="flex justify-center"></div>
           <a id="downloadQR" href="#" download="qrcode.png"
              class="hidden bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700 inline-block">Download QR</a>
         </div>
 
-        <div class="mt-4 flex justify-center">
+        <div class="mt-4 flex justify-center gap-2">
           <button id="generateQRBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
             Generate QR
           </button>
+
+          <!-- 🟩 tombol baru -->
+          <button id="generateLinkBtn" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+            Generate Link Token
+          </button>
+        </div>
+
+        <!-- 🟩 area tampil link -->
+        <div id="linkTokenWrapper" class="mt-4 hidden text-center">
+          <p class="text-gray-600 mb-2">Link Token Sekolah:</p>
+          <a id="linkToken" href="#" target="_blank" class="text-blue-600 underline break-all"></a>
+          <div class="mt-2">
+            <button id="copyLinkBtn" class="bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700">Salin</button>
+          </div>
         </div>
       </div>
     </section>
 
-    
-    <!-- Tabel Superadmin -->
+    <!-- Superadmin Table -->
     <div id="adminTable" class="hidden bg-white rounded shadow p-4 overflow-auto">
       <h2 class="text-lg font-semibold mb-4">Data Semua User</h2>
       <table class="min-w-full border border-gray-300 table-auto">
