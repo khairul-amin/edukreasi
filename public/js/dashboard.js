@@ -89,15 +89,6 @@ saveBtn.onclick = async () => {
   }
 };
 
-// 🟩 fungsi hashing
-async function hashNPSN(npsn) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(npsn);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 12);
-}
-
 // 🟩 tombol generate link token
 if (generateLinkBtn) {
   generateLinkBtn.onclick = async () => {
@@ -106,9 +97,8 @@ if (generateLinkBtn) {
       return;
     }
 
-    const hashed = await hashNPSN(npsn.value.trim());
     const baseUrl = window.location.origin;
-    const tokenUrl = `${baseUrl}/token.html?k=${hashed}`;
+    const tokenUrl = `${baseUrl}/token.html?k=${npsn.value.trim()}`; // pakai NPSN langsung
 
     linkTokenWrapper.classList.remove("hidden");
     linkToken.href = tokenUrl;
