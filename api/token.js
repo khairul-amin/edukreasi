@@ -3,7 +3,7 @@ import crypto from "crypto";
 
 const supabase = createClient(
   "https://esmkveggutxzklavspnn.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." // anon key
 );
 
 function hashNPSN(npsn) {
@@ -13,7 +13,7 @@ function hashNPSN(npsn) {
 export default async function handler(req, res) {
   try {
     const { k } = req.query;
-    if (!k) return res.status(400).json({ error: "Parameter k tidak ditemukan" });
+    if (!k) return res.status(400).json({ error: "Kode hash tidak ada" });
 
     const { data, error } = await supabase
       .from("user_profiles")
@@ -24,8 +24,17 @@ export default async function handler(req, res) {
     const match = data.find(u => hashNPSN(u.npsn.trim()) === k);
     if (!match) return res.status(404).json({ error: "Sekolah tidak ditemukan" });
 
-    const response = await fetch(match.link_spreadsheet, { cache: "no-store" });
+    // 🔧 Perbaikan: otomatis ubah link pubhtml jadi CSV
+    let sheetUrl = match.link_spreadsheet.trim();
+    if (sheetUrl.includes("pubhtml")) {
+      sheetUrl = sheetUrl.replace("pubhtml", "pub?output=csv");
+    }
+
+    // 🔄 Ambil CSV dari spreadsheet publik
+    const response = await fetch(sheetUrl, { cache: "no-store" });
     const csv = await response.text();
+
+    // 🔍 Ambil nilai token dari CSV
     const rows = csv.split("\n").map(r => r.split(","));
     const token = rows[1]?.[4] || "Tidak ada token";
 
