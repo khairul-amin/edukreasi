@@ -90,15 +90,28 @@ saveBtn.onclick = async () => {
 };
 
 // 🟩 tombol generate link token
+// 🟩 tombol generate link token (versi hash otomatis)
 if (generateLinkBtn) {
+  // fungsi bantu: hash NPSN pakai SHA-256 lalu potong 12 karakter
+  async function hashNPSN(npsnValue) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(npsnValue);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+    return hashHex.slice(0, 12); // ambil 12 karakter biar pendek
+  }
+
   generateLinkBtn.onclick = async () => {
     if (!npsn.value) {
       alert("Isi NPSN terlebih dahulu!");
       return;
     }
 
+    // 🔹 Hash otomatis NPSN
+    const hashed = await hashNPSN(npsn.value.trim());
     const baseUrl = window.location.origin;
-    const tokenUrl = `${baseUrl}/token.html?k=${npsn.value.trim()}`; // pakai NPSN langsung
+    const tokenUrl = `${baseUrl}/token.html?h=${hashed}`; // pakai hash, bukan NPSN asli
 
     linkTokenWrapper.classList.remove("hidden");
     linkToken.href = tokenUrl;
@@ -110,6 +123,7 @@ if (generateLinkBtn) {
     };
   };
 }
+
 
 // ---- Admin ----
 async function loadAllUsers() {
