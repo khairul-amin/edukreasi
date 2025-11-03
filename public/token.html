@@ -29,17 +29,17 @@
         "text-xl font-mono text-gray-900 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl p-4 border border-gray-300 shadow-inner";
 
       try {
-        // Ambil kode hash dari URL, misal ?k=8a7b91d2f6aa
+        // 🔹 Ambil kode hash dari URL, misal ?h=c0ffd8325d0d
         const params = new URLSearchParams(window.location.search);
-        const kode = params.get("k");
+        const hash = params.get("h");
 
-        if (!kode) {
-          tokenDiv.innerText = "Link tidak valid (kode tidak ditemukan)";
+        if (!hash) {
+          tokenDiv.innerText = "Link tidak valid (kode hash tidak ditemukan)";
           return;
         }
 
-        // Panggil API token sesuai hash kode
-        const res = await fetch(`/api/token?k=${kode}&_=${Date.now()}`, { cache: "no-store" });
+        // 🔹 Panggil endpoint API pakai parameter hash
+        const res = await fetch(`/api/token?h=${hash}&_=${Date.now()}`, { cache: "no-store" });
         const data = await res.json();
 
         if (data.token && data.token !== "Tidak ada token") {
