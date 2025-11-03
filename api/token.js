@@ -1,15 +1,33 @@
+import { createClient } from "@supabase/supabase-js";
+import crypto from "crypto";
+
+const supabase = createClient(
+  "https://esmkveggutxzklavspnn.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+);
+
+function hashNPSN(npsn) {
+  return crypto.createHash("sha256").update(npsn).digest("hex").slice(0, 12);
+}
+
 export default async function handler(req, res) {
   try {
-    const url =
-      "https://docs.google.com/spreadsheets/d/e/2PACX-1vR6xi5S1zBVBkgL1XyS2v0khJtLr3xMMFmoIHwkFH2lDvxBlNcvfdeQbHcFI-zJgEVREhMB2rN1bwkJ/pub?gid=0&single=true&output=csv";
+    const { k } = req.query;
+    if (!k) return res.status(400).json({ error: "Parameter k tidak ditemukan" });
 
-    // fetch sudah built-in di Node 18 (Vercel default)
-    const response = await fetch(url, { cache: "no-store" });
+    const { data, error } = await supabase
+      .from("user_profiles")
+      .select("npsn, link_spreadsheet");
+
+    if (error) throw error;
+
+    const match = data.find(u => hashNPSN(u.npsn.trim()) === k);
+    if (!match) return res.status(404).json({ error: "Sekolah tidak ditemukan" });
+
+    const response = await fetch(match.link_spreadsheet, { cache: "no-store" });
     const csv = await response.text();
-
-    // parsing csv
-    const rows = csv.split("\n").map((r) => r.split(","));
-    const token = rows[1][4] || "Tidak ada token";
+    const rows = csv.split("\n").map(r => r.split(","));
+    const token = rows[1]?.[4] || "Tidak ada token";
 
     res.status(200).json({ token: token.trim() });
   } catch (err) {
