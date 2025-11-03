@@ -8,15 +8,18 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
   try {
-    const { k } = req.query; // ambil parameter ?k=
+    const { k } = req.query;
     if (!k) return res.status(400).json({ error: "Parameter k (NPSN) wajib diisi" });
 
-    // 🔹 Cari sekolah di Supabase berdasarkan NPSN
+    console.log("NPSN diterima:", k);
+
     const { data: sekolah, error } = await supabase
       .from("user_profiles")
       .select("link_spreadsheet, asal_sekolah")
-      .eq("npsn", k)
+      .ilike("npsn", `%${k.trim()}%`)
       .maybeSingle();
+
+    console.log("Hasil query:", sekolah, error);
 
     if (error) throw error;
     if (!sekolah) return res.status(404).json({ error: "Sekolah tidak ditemukan" });
@@ -24,21 +27,17 @@ export default async function handler(req, res) {
     const sheetUrl = sekolah.link_spreadsheet;
     if (!sheetUrl) return res.status(400).json({ error: "Link spreadsheet tidak ditemukan" });
 
-    // 🔹 Ubah link pubhtml jadi CSV
     const csvUrl = sheetUrl.replace("/pubhtml", "/pub?output=csv");
 
-    // 🔹 Ambil CSV dari Google Sheets
     const response = await fetch(csvUrl, { cache: "no-store" });
     if (!response.ok) throw new Error("Gagal fetch data dari Google Sheets");
 
     const csv = await response.text();
     const rows = csv.split("\n").map((r) => r.split(","));
-
-    // 🔹 Ambil token dari baris ke-2 kolom ke-5 (index 4)
     const token = rows?.[1]?.[4]?.trim();
+
     if (!token) return res.status(404).json({ error: "Token tidak ditemukan di sheet" });
 
-    // ✅ Sukses
     res.status(200).json({
       sekolah: sekolah.asal_sekolah,
       token,
@@ -48,3 +47,4 @@ export default async function handler(req, res) {
     res.status(500).json({ error: "Gagal ambil token dari server" });
   }
 }
+
