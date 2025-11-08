@@ -1,97 +1,112 @@
 <!DOCTYPE html>
-<html lang="id" x-data="{ darkMode: false }"
-      x-init="
-         darkMode = JSON.parse(localStorage.getItem('darkMode'));
-         $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
-      :class="{'dark bg-gray-900': darkMode}">
+<html lang="id"
+  x-data="{
+    darkMode: JSON.parse(localStorage.getItem('darkMode')) || false,
+    sidebarOpen: false
+  }"
+  x-init="$watch('darkMode', v => localStorage.setItem('darkMode', JSON.stringify(v)))"
+  :class="{ 'dark bg-gray-900 text-white': darkMode }">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard PSI Fathir Alfath</title>
-  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Edukreasi</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
   <script type="module" src="../js/dashboard.js" defer></script>
   <script type="module" src="../js/qr.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
-<body class="font-sans bg-gray-100 text-gray-800">
+
+<body class="flex h-screen overflow-hidden font-sans">
 
   <!-- Sidebar -->
-  <aside class="w-64 bg-white shadow-md h-screen fixed">
-    <div class="p-4 font-bold text-lg">Dashboard</div>
-    <nav class="mt-6">
-      <a href="#" class="block px-4 py-2 hover:bg-gray-200 rounded">Dashboard</a>
-      <a href="#" class="block px-4 py-2 hover:bg-gray-200 rounded">Users</a>
+  <aside class="bg-white dark:bg-gray-800 w-64 flex-shrink-0 border-r dark:border-gray-700"
+         :class="{'hidden': !sidebarOpen, 'block': sidebarOpen}">
+    <div class="p-4 text-lg font-bold border-b dark:border-gray-700">Dashboard</div>
+    <nav class="p-4 space-y-2">
+      <a href="#" class="block px-3 py-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">🏠 Dashboard</a>
+      <a href="#" class="block px-3 py-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">👤 Users</a>
     </nav>
   </aside>
 
-  <!-- Main Content -->
-  <div class="ml-64 p-6">
+  <!-- Main Area -->
+  <div class="flex-1 flex flex-col overflow-y-auto">
+
     <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold">Dashboard</h1>
+    <header class="flex justify-between items-center bg-white dark:bg-gray-800 px-6 py-4 border-b dark:border-gray-700">
+      <div class="flex items-center gap-3">
+        <button @click="sidebarOpen = !sidebarOpen" class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
+          ☰
+        </button>
+        <h1 class="text-xl font-bold">Dashboard</h1>
+      </div>
+
       <div class="flex items-center gap-4">
-        <p id="userEmail" class="text-gray-600"></p>
+        <button @click="darkMode = !darkMode" class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
+          <span x-show="!darkMode">🌞</span>
+          <span x-show="darkMode">🌙</span>
+        </button>
+        <p id="userEmail" class="text-gray-600 dark:text-gray-300"></p>
         <button id="logoutBtn" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">Logout</button>
       </div>
-    </div>
+    </header>
 
-    <!-- Metric Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="metricCards"></div>
+    <!-- Content -->
+    <main class="p-6 space-y-6 bg-gray-50 dark:bg-gray-900 flex-1">
 
-    <!-- User Form -->
-    <section id="userForm" class="hidden max-w-md bg-white p-6 rounded shadow">
-      <h2 class="text-lg font-semibold mb-4">Data Sekolah</h2>
+      <!-- Metric Cards -->
+      <section id="metricCards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></section>
 
-      <div class="space-y-3">
-        <input id="nama" type="text" placeholder="Nama Sekolah" class="w-full border rounded p-2">
-        <input id="npsn" type="text" placeholder="NPSN" class="w-full border rounded p-2">
-        <input id="link" type="text" placeholder="Link Spreadsheet" class="w-full border rounded p-2">
-        <input id="hp" type="text" placeholder="No. HP" class="w-full border rounded p-2">
-      </div>
-
-      <div class="mt-4 flex gap-2">
-        <button id="saveBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Simpan</button>
-      </div>
-
-      <!-- QR Section -->
-      <div class="mt-6 border-t pt-4">
-        <div id="qrWrapper" class="text-center space-y-2">
-          <div id="qrCode" class="flex justify-center"></div>
-          <a id="downloadQR" href="#" download="qrcode.png"
-             class="hidden bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700 inline-block">Download QR</a>
+      <!-- User Form -->
+      <section id="userForm" class="hidden max-w-md bg-white dark:bg-gray-800 p-6 rounded shadow">
+        <h2 class="text-lg font-semibold mb-4">Data Sekolah</h2>
+        <div class="space-y-3">
+          <input id="nama" type="text" placeholder="Nama Sekolah" class="w-full border rounded p-2 dark:bg-gray-700">
+          <input id="npsn" type="text" placeholder="NPSN" class="w-full border rounded p-2 dark:bg-gray-700">
+          <input id="link" type="text" placeholder="Link Spreadsheet" class="w-full border rounded p-2 dark:bg-gray-700">
+          <input id="hp" type="text" placeholder="No. HP" class="w-full border rounded p-2 dark:bg-gray-700">
         </div>
 
-        <div class="mt-4 flex justify-center gap-2">
-          <button id="generateQRBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-            Generate QR
-          </button>
-
-          <!-- 🟩 tombol baru -->
-          <button id="generateLinkBtn" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-            Generate Link Token
-          </button>
+        <div class="mt-4 flex gap-2">
+          <button id="saveBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Simpan</button>
         </div>
 
-        <!-- 🟩 area tampil link -->
-        <div id="linkTokenWrapper" class="mt-4 hidden text-center">
-          <p class="text-gray-600 mb-2">Link Token Sekolah:</p>
-          <a id="linkToken" href="#" target="_blank" class="text-blue-600 underline break-all"></a>
-          <div class="mt-2">
-            <button id="copyLinkBtn" class="bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700">Salin</button>
+        <div class="mt-6 border-t pt-4">
+          <div id="qrWrapper" class="text-center space-y-2">
+            <div id="qrCode" class="flex justify-center"></div>
+            <a id="downloadQR" href="#" download="qrcode.png"
+               class="hidden bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700 inline-block">Download QR</a>
+          </div>
+
+          <div class="mt-4 flex justify-center gap-2">
+            <button id="generateQRBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+              Generate QR
+            </button>
+            <button id="generateLinkBtn" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+              Generate Link Token
+            </button>
+          </div>
+
+          <div id="linkTokenWrapper" class="mt-4 hidden text-center">
+            <p class="text-gray-600 dark:text-gray-400 mb-2">Link Token Sekolah:</p>
+            <a id="linkToken" href="#" target="_blank" class="text-blue-600 underline break-all"></a>
+            <div class="mt-2">
+              <button id="copyLinkBtn" class="bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700">Salin</button>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- Superadmin Table -->
-    <div id="adminTable" class="hidden bg-white rounded shadow p-4 overflow-auto">
-      <h2 class="text-lg font-semibold mb-4">Data Semua User</h2>
-      <table class="min-w-full border border-gray-300 table-auto">
-        <thead id="tableHead" class="bg-gray-200"></thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-    </div>
+      <!-- Admin Table -->
+      <section id="adminTable" class="hidden bg-white dark:bg-gray-800 rounded shadow p-4 overflow-auto">
+        <h2 class="text-lg font-semibold mb-4">Data Semua User</h2>
+        <table class="min-w-full border border-gray-300 dark:border-gray-600 table-auto">
+          <thead id="tableHead" class="bg-gray-200 dark:bg-gray-700"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </section>
+    </main>
   </div>
 </body>
 </html>
