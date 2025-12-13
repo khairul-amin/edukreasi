@@ -21,7 +21,10 @@
     </button>
   </div>
 
-  <script>
+ <script>
+  const SUPABASE_ANON_KEY =
+    "2741c9894fbd97576b1eb6dc4c73d50289c5530b78cac24b1c8348b84e55d9cc";
+
   async function fetchToken() {
     const tokenDiv = document.getElementById("token");
     tokenDiv.innerText = "Loading...";
@@ -33,17 +36,25 @@
       if (!hash) {
         tokenDiv.innerText =
           "Link tidak valid.\nSilakan buka dari dashboard sekolah.";
-        tokenDiv.classList.add("text-red-600", "font-semibold", "whitespace-pre-line");
+        tokenDiv.classList.add(
+          "text-red-600",
+          "font-semibold",
+          "whitespace-pre-line"
+        );
         return;
       }
 
-      // 🔹 PANGGIL EDGE FUNCTION SUPABASE
       const res = await fetch(
         "https://esmkveggutxzklavspnn.supabase.co/functions/v1/get-school-token?h=" +
           hash +
           "&_=" +
           Date.now(),
-        { cache: "no-store" }
+        {
+          cache: "no-store",
+          headers: {
+            apikey: SUPABASE_ANON_KEY
+          }
+        }
       );
 
       const data = await res.json();
@@ -63,6 +74,7 @@
   document.getElementById("reloadBtn").addEventListener("click", fetchToken);
   fetchToken();
 </script>
+
 
 
   <style>
