@@ -22,43 +22,48 @@
   </div>
 
   <script>
-    async function fetchToken() {
-      const tokenDiv = document.getElementById("token");
-      tokenDiv.innerText = "Loading...";
-      tokenDiv.className =
-        "text-xl font-mono text-gray-900 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl p-4 border border-gray-300 shadow-inner";
+  async function fetchToken() {
+    const tokenDiv = document.getElementById("token");
+    tokenDiv.innerText = "Loading...";
 
-      try {
-        // 🔹 Ambil kode hash dari URL, misal ?h=c0ffd8325d0d
-        const params = new URLSearchParams(window.location.search);
-        const hash = params.get("h");
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const hash = params.get("h");
 
-        // 🔹 Jika hash tidak ada → tampilkan pesan ramah
-        if (!hash) {
-          tokenDiv.innerText = "Ups! Tautan ini tidak bisa digunakan.\nPastikan kamu membuka link token dari dashboard sekolah.";
-          tokenDiv.classList.add("text-red-600", "font-semibold", "whitespace-pre-line");
-          return;
-        }
-
-        // 🔹 Panggil endpoint API pakai parameter hash
-        const res = await fetch(`/api/token?h=${hash}&_=${Date.now()}`, { cache: "no-store" });
-        const data = await res.json();
-
-        if (data.token && data.token !== "Tidak ada token") {
-          tokenDiv.innerText = data.token;
-          tokenDiv.classList.add("text-5xl", "font-bold", "text-indigo-700");
-        } else {
-          tokenDiv.innerText = "Tidak ada token ditemukan";
-        }
-      } catch (err) {
-        console.error(err);
-        tokenDiv.innerText = "Gagal mengambil token dari server";
+      if (!hash) {
+        tokenDiv.innerText =
+          "Link tidak valid.\nSilakan buka dari dashboard sekolah.";
+        tokenDiv.classList.add("text-red-600", "font-semibold", "whitespace-pre-line");
+        return;
       }
-    }
 
-    document.getElementById("reloadBtn").addEventListener("click", fetchToken);
-    fetchToken();
-  </script>
+      // 🔹 PANGGIL EDGE FUNCTION SUPABASE
+      const res = await fetch(
+        "https://esmkveggutxzklavspnn.supabase.co/functions/v1/get-school-token?h=" +
+          hash +
+          "&_=" +
+          Date.now(),
+        { cache: "no-store" }
+      );
+
+      const data = await res.json();
+
+      if (data.token) {
+        tokenDiv.innerText = data.token;
+        tokenDiv.classList.add("text-5xl", "font-bold", "text-indigo-700");
+      } else {
+        tokenDiv.innerText = data.error || "Token belum tersedia";
+      }
+    } catch (err) {
+      console.error(err);
+      tokenDiv.innerText = "Gagal menghubungi server";
+    }
+  }
+
+  document.getElementById("reloadBtn").addEventListener("click", fetchToken);
+  fetchToken();
+</script>
+
 
   <style>
     @keyframes fadeIn {
