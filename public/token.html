@@ -21,60 +21,36 @@
     </button>
   </div>
 
- <script>
-  const SUPABASE_ANON_KEY =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzbWt2ZWdndXR4emtsYXZzcG5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzODIyNTQsImV4cCI6MjA3NTk1ODI1NH0.18vlPWg1S_6ocoCWKaCh_KU41TbipXyQNS2r5GKRQ44";
+<script>
+async function fetchToken() {
+  const tokenDiv = document.getElementById("token");
+  tokenDiv.innerText = "Loading...";
 
-  async function fetchToken() {
-    const tokenDiv = document.getElementById("token");
-    tokenDiv.innerText = "Loading...";
+  const params = new URLSearchParams(window.location.search);
+  const hash = params.get("h");
 
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const hash = params.get("h");
-
-      if (!hash) {
-        tokenDiv.innerText =
-          "Link tidak valid.\nSilakan buka dari dashboard sekolah.";
-        tokenDiv.classList.add(
-          "text-red-600",
-          "font-semibold",
-          "whitespace-pre-line"
-        );
-        return;
-      }
-
-      const res = await fetch(
-        "https://esmkveggutxzklavspnn.supabase.co/functions/v1/get-school-token?h=" +
-          hash +
-          "&_=" +
-          Date.now(),
-        {
-          cache: "no-store",
-          headers: {
-            apikey: SUPABASE_ANON_KEY
-          }
-        }
-      );
-
-      const data = await res.json();
-
-      if (data.token) {
-        tokenDiv.innerText = data.token;
-        tokenDiv.classList.add("text-5xl", "font-bold", "text-indigo-700");
-      } else {
-        tokenDiv.innerText = data.error || "Token belum tersedia";
-      }
-    } catch (err) {
-      console.error(err);
-      tokenDiv.innerText = "Gagal menghubungi server";
-    }
+  if (!hash) {
+    tokenDiv.innerText = "Link tidak valid";
+    return;
   }
 
-  document.getElementById("reloadBtn").addEventListener("click", fetchToken);
-  fetchToken();
-</script>
+  const res = await fetch(
+    "https://esmkveggutxzklavspnn.supabase.co/functions/v1/get-school-token",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_ANON_KEY
+      },
+      body: JSON.stringify({ hash })
+    }
+  );
 
+  const data = await res.json();
+
+  tokenDiv.innerText = data.token || data.error || "Token belum tersedia";
+}
+</script>
 
 
   <style>
