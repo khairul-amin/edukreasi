@@ -20,7 +20,8 @@
       Reload
     </button>
   </div>
-<script>
+
+ <script>
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzbWt2ZWdndXR4emtsYXZzcG5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzODIyNTQsImV4cCI6MjA3NTk1ODI1NH0.18vlPWg1S_6ocoCWKaCh_KU41TbipXyQNS2r5GKRQ44";
 
 async function fetchToken() {
@@ -46,14 +47,24 @@ async function fetchToken() {
     }
   );
 
-  const data = await res.json();
-  tokenDiv.innerText = data.token || data.error || "Token belum tersedia";
-}
 
-document.getElementById("reloadBtn").addEventListener("click", fetchToken);
-fetchToken();
+      const data = await res.json();
+
+      if (data.token) {
+        tokenDiv.innerText = data.token;
+        tokenDiv.classList.add("text-5xl", "font-bold", "text-indigo-700");
+      } else {
+        tokenDiv.innerText = data.error || "Token belum tersedia";
+      }
+    } catch (err) {
+      console.error(err);
+      tokenDiv.innerText = "Gagal menghubungi server";
+    }
+  }
+
+  document.getElementById("reloadBtn").addEventListener("click", fetchToken);
+  fetchToken();
 </script>
-
 
   <style>
     @keyframes fadeIn {
