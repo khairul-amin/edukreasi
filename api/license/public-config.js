@@ -8,6 +8,11 @@ export default async function handler(req, res) {
 
   const config = getLicenseConfig(req);
   const midtrans = getMidtransConfig();
+  const paymentEnabled = Boolean(midtrans.serverKey && midtrans.clientKey);
+  const snapScriptUrl = midtrans.isProduction
+    ? 'https://app.midtrans.com/snap/snap.js'
+    : 'https://app.sandbox.midtrans.com/snap/snap.js';
+
   return sendJson(res, 200, {
     success: true,
     plan: config.plan,
@@ -19,6 +24,8 @@ export default async function handler(req, res) {
     checkoutPageUrl: `${config.publicBaseUrl}/checkout`,
     publicKeyUrl: `${config.publicBaseUrl}/api/license/public-key`,
     paymentMode: midtrans.isProduction ? 'production' : 'sandbox',
-    paymentEnabled: Boolean(midtrans.serverKey)
+    paymentEnabled,
+    paymentClientKey: paymentEnabled ? midtrans.clientKey : '',
+    paymentScriptUrl: paymentEnabled ? snapScriptUrl : ''
   });
 }

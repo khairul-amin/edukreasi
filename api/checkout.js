@@ -65,7 +65,9 @@ export default async function handler(req, res) {
         snapToken = midtransResponse?.token || null;
         rawJson = midtransResponse;
         if (!midtransResponse) {
-          paymentType = 'simulation';
+          throw createHttpError(500, 'Midtrans belum dikonfigurasi di server.', {
+            code: 'MIDTRANS_NOT_CONFIGURED'
+          });
         }
       } catch (error) {
         await updateOrder(supabase, orderId, {
@@ -89,6 +91,9 @@ export default async function handler(req, res) {
       success: true,
       order_id: orderId,
       redirect_url: redirectUrl,
+      snap_token: snapToken,
+      payment_type: paymentType,
+      payment_mode: simulation ? 'simulation' : 'midtrans',
       amount,
       currency,
       checkout_url: buildCheckoutUrl(publicBaseUrl, npsn, deviceId)
