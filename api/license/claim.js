@@ -1,6 +1,6 @@
-﻿import { createServiceClient } from '../_lib/supabase.js';
-import { createHttpError, methodNotAllowed, sendJson } from '../_lib/http.js';
-import { ensureActivation, ensureLicense, getOrder, issueToken, updateOrder } from '../_lib/license-store.js';
+﻿import { createServiceClient } from '../../lib/supabase.js';
+import { createHttpError, methodNotAllowed, sendJson } from '../../lib/http.js';
+import { ensureActivation, ensureLicense, getOrder, issueToken, updateOrder } from '../../lib/license-store.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {

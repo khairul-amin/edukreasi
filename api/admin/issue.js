@@ -1,8 +1,8 @@
-﻿import { getLicenseConfig } from '../_lib/config.js';
-import { requireAdmin } from '../_lib/auth.js';
-import { createServiceClient } from '../_lib/supabase.js';
-import { methodNotAllowed, readJsonBody, sendJson } from '../_lib/http.js';
-import { buildCheckoutUrl, ensureActivation, ensureLicense, issueToken } from '../_lib/license-store.js';
+﻿import { getLicenseConfig } from '../../lib/config.js';
+import { requireAdmin } from '../../lib/auth.js';
+import { createServiceClient } from '../../lib/supabase.js';
+import { methodNotAllowed, readJsonBody, sendJson } from '../../lib/http.js';
+import { buildCheckoutUrl, ensureActivation, ensureLicense, issueToken } from '../../lib/license-store.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

@@ -1,5 +1,5 @@
-﻿import { methodNotAllowed, sendJson } from './_lib/http.js';
-import { nowIso } from './_lib/license-store.js';
+﻿import { methodNotAllowed, sendJson } from '../lib/http.js';
+import { nowIso } from '../lib/license-store.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {

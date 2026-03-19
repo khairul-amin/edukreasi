@@ -1,5 +1,5 @@
-﻿import { getLicenseConfig } from '../_lib/config.js';
-import { methodNotAllowed, sendText } from '../_lib/http.js';
+﻿import { getLicenseConfig } from '../../lib/config.js';
+import { methodNotAllowed, sendText } from '../../lib/http.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {

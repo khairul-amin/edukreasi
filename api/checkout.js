@@ -1,8 +1,8 @@
 ﻿import crypto from 'crypto';
-import { getLicenseConfig } from './_lib/config.js';
-import { createServiceClient } from './_lib/supabase.js';
-import { createHttpError, methodNotAllowed, readJsonBody, sendJson } from './_lib/http.js';
-import { buildCheckoutUrl, createMidtransTransaction, createOrder, updateOrder } from './_lib/license-store.js';
+import { getLicenseConfig } from '../lib/config.js';
+import { createServiceClient } from '../lib/supabase.js';
+import { createHttpError, methodNotAllowed, readJsonBody, sendJson } from '../lib/http.js';
+import { buildCheckoutUrl, createMidtransTransaction, createOrder, updateOrder } from '../lib/license-store.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

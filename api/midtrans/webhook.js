@@ -1,6 +1,6 @@
-﻿import { createServiceClient } from '../_lib/supabase.js';
-import { createHttpError, methodNotAllowed, readJsonBody, sendJson } from '../_lib/http.js';
-import { ensureActivation, ensureLicense, issueToken, updateOrder, verifyMidtransSignature } from '../_lib/license-store.js';
+﻿import { createServiceClient } from '../../lib/supabase.js';
+import { createHttpError, methodNotAllowed, readJsonBody, sendJson } from '../../lib/http.js';
+import { ensureActivation, ensureLicense, issueToken, updateOrder, verifyMidtransSignature } from '../../lib/license-store.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
