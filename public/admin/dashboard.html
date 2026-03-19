@@ -56,7 +56,7 @@
     </header>
 
     <main class="mx-auto max-w-7xl px-4 pb-20 pt-8 lg:px-6">
-      <section class="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+      <section>
         <article class="glass-panel overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.06] p-6 backdrop-blur-2xl lg:p-8">
           <div class="max-w-3xl">
             <p class="text-xs font-semibold uppercase tracking-[0.38em] text-stone-400">Admin-Only Server</p>
@@ -71,13 +71,6 @@
             </div>
           </div>
         </article>
-
-        <aside class="glass-panel rounded-[2rem] border border-white/10 bg-[#08131c]/80 p-6 backdrop-blur-2xl lg:p-7">
-          <p class="text-xs font-semibold uppercase tracking-[0.38em] text-stone-400">Aktivitas Terbaru</p>
-          <h3 class="mt-3 font-display text-2xl font-bold text-white">Yang baru saja terjadi</h3>
-          <p class="mt-3 text-sm leading-6 text-stone-300">Bagian ini merangkum order, aktivasi device, dan perubahan lisensi terbaru supaya Anda tidak perlu membaca semuanya dari tabel.</p>
-          <div id="activityFeed" class="mt-6 space-y-3"></div>
-        </aside>
       </section>
 
       <section id="flash" class="mt-6"></section>
@@ -218,13 +211,32 @@
       <section class="mt-8 space-y-6">
         <article class="glass-panel overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.05] backdrop-blur-2xl">
           <div class="border-b border-white/10 px-6 py-5">
-            <p class="text-xs font-semibold uppercase tracking-[0.38em] text-stone-400">Orders</p>
-            <h3 class="mt-2 font-display text-2xl font-bold text-white">Checkout & pembayaran terbaru</h3>
+            <div class="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.38em] text-stone-400">Orders</p>
+                <h3 class="mt-2 font-display text-2xl font-bold text-white">Checkout & pembayaran terbaru</h3>
+              </div>
+              <div class="flex flex-wrap items-center gap-3">
+                <label class="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-stone-300">
+                  <span class="text-xs uppercase tracking-[0.24em] text-stone-500">Urutkan</span>
+                  <select id="orderSortSelect" class="bg-transparent text-sm font-semibold text-white outline-none">
+                    <option value="recent_desc">Terbaru</option>
+                    <option value="recent_asc">Terlama</option>
+                    <option value="amount_desc">Nominal terbesar</option>
+                    <option value="amount_asc">Nominal terkecil</option>
+                    <option value="status_asc">Status A-Z</option>
+                  </select>
+                </label>
+                <button id="deleteOrdersBtn" type="button" disabled class="rounded-2xl border border-rose-400/25 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-100 transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-rose-500/20">Hapus Terpilih</button>
+              </div>
+            </div>
+            <p id="ordersSummary" class="mt-4 text-sm text-stone-400">Pilih order dengan ceklis jika ingin menghapus beberapa data sekaligus.</p>
           </div>
           <div class="overflow-x-auto">
             <table class="min-w-full text-sm">
               <thead class="bg-white/5 text-left text-stone-400">
                 <tr>
+                  <th class="px-5 py-4"><input id="selectAllOrders" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-stone-900 text-teal-300 focus:ring-teal-300" /></th>
                   <th class="px-5 py-4">Order</th>
                   <th class="px-5 py-4">Pembayaran</th>
                   <th class="px-5 py-4">Status</th>

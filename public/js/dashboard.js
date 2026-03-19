@@ -10,7 +10,6 @@ const els = {
   accessDenied: document.getElementById('accessDenied'),
   publicKeyLink: document.getElementById('publicKeyLink'),
   publicConfigMeta: document.getElementById('publicConfigMeta'),
-  activityFeed: document.getElementById('activityFeed'),
   setupGrid: document.getElementById('setupGrid'),
   metricsGrid: document.getElementById('metricsGrid'),
   builderSchoolName: document.getElementById('builderSchoolName'),
@@ -30,6 +29,10 @@ const els = {
   issueNote: document.getElementById('issueNote'),
   issueResult: document.getElementById('issueResult'),
   systemInfo: document.getElementById('systemInfo'),
+  orderSortSelect: document.getElementById('orderSortSelect'),
+  deleteOrdersBtn: document.getElementById('deleteOrdersBtn'),
+  selectAllOrders: document.getElementById('selectAllOrders'),
+  ordersSummary: document.getElementById('ordersSummary'),
   licenseTable: document.getElementById('licenseTable'),
   orderTable: document.getElementById('orderTable'),
   activationTable: document.getElementById('activationTable')
@@ -41,7 +44,9 @@ const state = {
   admin: null,
   publicConfig: null,
   adminData: null,
-  lastLoadedAt: null
+  lastLoadedAt: null,
+  orderSort: 'recent_desc',
+  selectedOrders: new Set()
 };
 
 class ApiError extends Error {
@@ -457,6 +462,74 @@ function renderSystemInfo(config) {
 function renderEmptyRow(colspan, message) {
   return `<tr><td colspan="${colspan}" class="px-5 py-8 text-center text-stone-400">${escapeHtml(message)}</td></tr>`;
 }
+function sortOrders(rows) {
+  const cloned = [...rows];
+  const getTime = (row) => new Date(row.paid_at || row.updated_at || row.created_at || 0).getTime();
+
+  switch (state.orderSort) {
+    case 'recent_asc':
+      return cloned.sort((a, b) => getTime(a) - getTime(b));
+    case 'amount_desc':
+      return cloned.sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0));
+    case 'amount_asc':
+      return cloned.sort((a, b) => Number(a.amount || 0) - Number(b.amount || 0));
+    case 'status_asc':
+      return cloned.sort((a, b) => String(a.status || '').localeCompare(String(b.status || '')));
+    case 'recent_desc':
+    default:
+      return cloned.sort((a, b) => getTime(b) - getTime(a));
+  }
+}
+
+function syncOrderSelectionState(totalRows = (state.adminData?.orders || []).length) {
+  const selectedCount = state.selectedOrders.size;
+
+  if (els.ordersSummary) {
+    els.ordersSummary.textContent = selectedCount
+      ? `${selectedCount} order dipilih dari ${totalRows} data. Anda bisa hapus semuanya sekaligus.`
+      : `Menampilkan ${totalRows} order. Gunakan ceklis untuk memilih data yang ingin dihapus.`;
+  }
+
+  if (els.deleteOrdersBtn) {
+    els.deleteOrdersBtn.disabled = selectedCount === 0;
+    els.deleteOrdersBtn.textContent = selectedCount ? `Hapus Terpilih (${selectedCount})` : 'Hapus Terpilih';
+  }
+
+  if (els.selectAllOrders) {
+    els.selectAllOrders.checked = totalRows > 0 && selectedCount === totalRows;
+    els.selectAllOrders.indeterminate = selectedCount > 0 && selectedCount < totalRows;
+  }
+}
+
+async function handleDeleteSelectedOrders() {
+  const orderIds = [...state.selectedOrders];
+  if (!orderIds.length) {
+    showFlash('Pilih minimal satu order untuk dihapus.', 'error');
+    return;
+  }
+
+  const confirmed = window.confirm(`Hapus ${orderIds.length} order yang dipilih? Tindakan ini tidak bisa dibatalkan.`);
+  if (!confirmed) return;
+
+  els.deleteOrdersBtn.disabled = true;
+  const originalLabel = els.deleteOrdersBtn.textContent;
+  els.deleteOrdersBtn.textContent = 'Menghapus...';
+
+  try {
+    const result = await apiFetch('/api/admin/orders', {
+      method: 'DELETE',
+      body: JSON.stringify({ order_ids: orderIds })
+    });
+    state.selectedOrders.clear();
+    showFlash(result.message || 'Order berhasil dihapus.', 'success');
+    await loadAdminDashboard();
+  } catch (error) {
+    showFlash(error.message || 'Gagal menghapus order.', 'error');
+  } finally {
+    els.deleteOrdersBtn.disabled = false;
+    els.deleteOrdersBtn.textContent = originalLabel;
+  }
+}
 function renderLicenseTable(rows) {
   if (!rows.length) {
     els.licenseTable.innerHTML = renderEmptyRow(3, 'Belum ada lisensi yang tersimpan.');
@@ -484,17 +557,26 @@ function renderLicenseTable(rows) {
 }
 
 function renderOrderTable(rows, currency) {
-  if (!rows.length) {
-    els.orderTable.innerHTML = renderEmptyRow(4, 'Belum ada order lisensi.');
+  const orderedRows = sortOrders(rows);
+  const validIds = new Set(orderedRows.map((row) => row.order_id));
+  state.selectedOrders = new Set([...state.selectedOrders].filter((id) => validIds.has(id)));
+
+  if (!orderedRows.length) {
+    els.orderTable.innerHTML = renderEmptyRow(5, 'Belum ada order lisensi.');
+    syncOrderSelectionState(0);
     return;
   }
 
-  els.orderTable.innerHTML = rows.map((row) => {
+  els.orderTable.innerHTML = orderedRows.map((row) => {
     const provider = [row.payment_provider, row.payment_type].filter(Boolean).join(' / ') || 'midtrans';
     const paidOrUpdated = row.paid_at || row.updated_at || row.created_at;
+    const checked = state.selectedOrders.has(row.order_id) ? 'checked' : '';
 
     return `
       <tr class="border-b border-white/5 align-top last:border-b-0">
+        <td class="px-5 py-4">
+          <input type="checkbox" data-order-id="${escapeHtml(row.order_id)}" class="order-select h-4 w-4 rounded border-white/20 bg-stone-900 text-teal-300 focus:ring-teal-300" ${checked} />
+        </td>
         <td class="px-5 py-4">
           <div class="font-mono text-xs text-stone-200">${escapeHtml(row.order_id)}</div>
           <div class="mt-2 font-semibold text-white">${escapeHtml(row.school_name || row.npsn || 'Sekolah belum diisi')}</div>
@@ -519,6 +601,8 @@ function renderOrderTable(rows, currency) {
       </tr>
     `;
   }).join('');
+
+  syncOrderSelectionState(orderedRows.length);
 }
 
 function bindDeactivateButtons() {
@@ -575,71 +659,6 @@ function renderActivationTable(rows) {
   bindDeactivateButtons();
 }
 
-function buildActivityItems(data) {
-  const items = [];
-
-  (data.orders || []).forEach((order) => {
-    items.push({
-      time: order.paid_at || order.updated_at || order.created_at,
-      tone: badgeClasses('payment', order.status),
-      title: `Order ${order.order_id}`,
-      label: humanizeStatus(order.status || 'pending'),
-      detail: `${order.school_name || order.npsn || 'Sekolah belum diisi'} - ${formatCurrency(order.amount, order.currency || data.config?.currency || 'IDR')}`
-    });
-  });
-
-  (data.activations || []).forEach((activation) => {
-    const schoolName = activation.licenses?.school_name || activation.licenses?.npsn || 'Lisensi aktif';
-    items.push({
-      time: activation.updated_at || activation.activated_at,
-      tone: badgeClasses('activation', activation.status),
-      title: `Aktivasi ${schoolName}`,
-      label: humanizeStatus(activation.status || 'active'),
-      detail: `${activation.device_id || '-'}${activation.device_label ? ` - ${activation.device_label}` : ''}`
-    });
-  });
-
-  (data.licenses || []).forEach((license) => {
-    items.push({
-      time: license.updated_at || license.created_at,
-      tone: badgeClasses('license', license.status),
-      title: `Lisensi ${license.school_name || license.npsn || 'baru'}`,
-      label: `${String(license.plan || 'full').toUpperCase()} / ${humanizeStatus(license.status || 'active')}`,
-      detail: `Batas ${formatNumber(license.activation_limit || 1)} device`
-    });
-  });
-
-  return items
-    .filter((item) => item.time)
-    .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
-    .slice(0, 7);
-}
-
-function renderActivityFeed(data) {
-  const items = buildActivityItems(data);
-
-  if (!items.length) {
-    els.activityFeed.innerHTML = `
-      <div class="rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-sm text-stone-400">
-        Belum ada aktivitas yang bisa diringkas. Begitu ada order, lisensi, atau aktivasi baru, ringkasannya akan tampil di sini.
-      </div>
-    `;
-    return;
-  }
-
-  els.activityFeed.innerHTML = items.map((item) => `
-    <article class="rounded-[1.4rem] border border-white/10 bg-black/20 p-4">
-      <div class="flex items-start justify-between gap-3">
-        <div>
-          <p class="text-sm font-semibold text-white">${escapeHtml(item.title)}</p>
-          <p class="mt-2 text-sm leading-6 text-stone-300">${escapeHtml(item.detail)}</p>
-        </div>
-        <span class="inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] ${item.tone}">${escapeHtml(item.label)}</span>
-      </div>
-      <p class="mt-3 text-xs text-stone-500">${escapeHtml(formatDate(item.time))} - ${escapeHtml(formatRelative(item.time))}</p>
-    </article>
-  `).join('');
-}
 function renderIssueResult(result) {
   els.issueResult.innerHTML = `
     <div class="rounded-[1.7rem] border border-emerald-400/20 bg-emerald-500/10 p-5 text-sm text-emerald-100">
@@ -723,7 +742,6 @@ async function loadAdminDashboard() {
   renderLicenseTable(data.licenses || []);
   renderOrderTable(data.orders || [], data.config.currency);
   renderActivationTable(data.activations || []);
-  renderActivityFeed(data);
 }
 
 function showAccessDenied(message) {
@@ -783,6 +801,23 @@ els.checkoutBuilderForm?.addEventListener('input', () => {
   buildCheckoutPreview();
 });
 
+els.orderSortSelect?.addEventListener('change', () => {
+  state.orderSort = els.orderSortSelect.value;
+  renderOrderTable(state.adminData?.orders || [], state.adminData?.config?.currency || 'IDR');
+});
+
+els.selectAllOrders?.addEventListener('change', (event) => {
+  const rows = sortOrders(state.adminData?.orders || []);
+  if (event.target.checked) {
+    state.selectedOrders = new Set(rows.map((row) => row.order_id));
+  } else {
+    state.selectedOrders.clear();
+  }
+  renderOrderTable(state.adminData?.orders || [], state.adminData?.config?.currency || 'IDR');
+});
+
+els.deleteOrdersBtn?.addEventListener('click', handleDeleteSelectedOrders);
+
 els.copyCheckoutBtn?.addEventListener('click', async () => {
   try {
     await copyText(buildCheckoutPreview(), 'Link checkout berhasil disalin.');
@@ -831,6 +866,20 @@ els.logoutBtn?.addEventListener('click', async () => {
 });
 
 document.addEventListener('click', async (event) => {
+  const checkbox = event.target.closest('.order-select');
+  if (checkbox) {
+    const orderId = checkbox.dataset.orderId;
+    if (orderId) {
+      if (checkbox.checked) {
+        state.selectedOrders.add(orderId);
+      } else {
+        state.selectedOrders.delete(orderId);
+      }
+      syncOrderSelectionState((state.adminData?.orders || []).length);
+    }
+    return;
+  }
+
   const button = event.target.closest('[data-copy-text]');
   if (!button) return;
 
@@ -845,3 +894,14 @@ init().catch((error) => {
   console.error(error);
   showFlash(error.message || 'Dashboard lisensi gagal dimuat.', 'error');
 });
+
+
+
+
+
+
+
+
+
+
+
