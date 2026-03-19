@@ -28,7 +28,6 @@ export default async function handler(req, res) {
         checkoutPageUrl: `${config.publicBaseUrl}/checkout`,
         publicKeyUrl: `${config.publicBaseUrl}/api/license/public-key`,
         webhookUrl: `${config.publicBaseUrl}/api/midtrans/webhook`,
-        adminSecretConfigured: Boolean(config.adminSecret),
         privateKeyReady: Boolean(config.privateKey),
         publicKeyReady: Boolean(config.publicKey),
         authMode: admin.mode,
@@ -45,3 +44,4 @@ export default async function handler(req, res) {
     });
   }
 }
+

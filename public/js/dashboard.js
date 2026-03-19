@@ -1,4 +1,4 @@
-import { buildAdminHeaders, clearAdminSecret, getAdminSecret } from './admin-session.js';
+import { getBrowserSupabase } from './supabase-browser.js';
 
 const els = {
   heroSubtitle: document.getElementById('heroSubtitle'),
@@ -34,7 +34,8 @@ const els = {
 };
 
 const state = {
-  adminSecret: '',
+  supabase: null,
+  session: null,
   admin: null,
   publicConfig: null,
   adminData: null
@@ -99,7 +100,7 @@ function formatCurrency(amount, currency = 'IDR') {
 }
 
 function fillIdentity(admin) {
-  const label = admin?.name || 'License Admin';
+  const label = admin?.name || admin?.email || 'Superadmin';
   const role = admin?.role || 'superadmin';
 
   els.userIdentity.innerHTML = `
@@ -111,7 +112,13 @@ function fillIdentity(admin) {
 }
 
 async function apiFetch(path, options = {}) {
-  const headers = new Headers(buildAdminHeaders(state.adminSecret, options.headers || {}));
+  const headers = new Headers(options.headers || {});
+  const accessToken = state.session?.access_token;
+
+  if (accessToken) {
+    headers.set('Authorization', `Bearer ${accessToken}`);
+  }
+
   if (!headers.has('Content-Type') && options.body) {
     headers.set('Content-Type', 'application/json');
   }
@@ -202,9 +209,16 @@ function renderSetupGrid(config) {
       detail: 'Terhubung karena dashboard berhasil membaca data lisensi.'
     },
     {
-      label: 'Admin Secret',
-      ok: Boolean(config.adminSecretConfigured),
-      detail: config.adminSecretConfigured ? 'Sudah diset di environment Vercel.' : 'Belum ada LICENSE_ADMIN_SECRET di environment.'
+      label: 'Google Auth',
+      ok: true,
+      detail: 'Login admin memakai OAuth Google dari Supabase.'
+    },
+    {
+      label: 'Akses Superadmin',
+      ok: config.authMode === 'user',
+      detail: config.authMode === 'user'
+        ? 'Akun ini lolos validasi tabel users dengan role superadmin.'
+        : 'Akun belum tervalidasi sebagai superadmin.'
     },
     {
       label: 'Key Pair Lisensi',
@@ -297,7 +311,7 @@ function renderSystemInfo(config) {
       </div>
       <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
         <p class="text-xs uppercase tracking-[0.3em] text-stone-400">Metode Admin</p>
-        <p class="mt-2 text-sm text-white">${escapeHtml(config.authMode === 'secret' ? 'Admin secret dari browser ini' : 'Session user superadmin')}</p>
+        <p class="mt-2 text-sm text-white">Google login + role superadmin di tabel users</p>
       </div>
       <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
         <p class="text-xs uppercase tracking-[0.3em] text-stone-400">Status Midtrans</p>
@@ -471,24 +485,32 @@ function showAccessDenied(message) {
     <div class="rounded-3xl border border-rose-400/20 bg-rose-500/10 p-8 text-rose-100">
       <p class="text-xs uppercase tracking-[0.3em] text-rose-200/80">Akses Dibatasi</p>
       <h2 class="mt-3 text-2xl font-semibold">${escapeHtml(message)}</h2>
-      <p class="mt-3 text-sm text-rose-100/80">Secret admin pada browser ini sudah tidak valid atau belum diisi.</p>
+      <p class="mt-3 text-sm text-rose-100/80">Pastikan akun Google ini sudah ada di tabel users dan role-nya superadmin.</p>
       <a class="mt-5 inline-flex rounded-2xl border border-white/10 bg-white/10 px-5 py-3 font-semibold text-white hover:bg-white/15" href="/admin">Kembali ke Login</a>
     </div>
   `;
 }
 
-function handleAuthFailure(error) {
-  clearAdminSecret();
+async function handleAuthFailure(error) {
   els.userIdentity.innerHTML = '';
   showAccessDenied(error.message || 'Akses admin ditolak.');
+  if (state.supabase) {
+    await state.supabase.auth.signOut();
+  }
 }
 
 async function init() {
-  state.adminSecret = getAdminSecret();
-  if (!state.adminSecret) {
+  state.supabase = await getBrowserSupabase();
+  const {
+    data: { session }
+  } = await state.supabase.auth.getSession();
+
+  if (!session) {
     window.location.href = '/admin';
     return;
   }
+
+  state.session = session;
 
   try {
     await loadPublicConfig();
@@ -502,7 +524,7 @@ async function init() {
     await loadAdminDashboard();
   } catch (error) {
     if (error instanceof ApiError && [401, 403].includes(error.status)) {
-      handleAuthFailure(error);
+      await handleAuthFailure(error);
       return;
     }
     throw error;
@@ -529,6 +551,11 @@ els.openCheckoutBtn?.addEventListener('click', () => {
 
 els.refreshBtn?.addEventListener('click', async () => {
   try {
+    const {
+      data: { session }
+    } = await state.supabase.auth.getSession();
+    state.session = session;
+
     await loadPublicConfig();
     renderPublicMeta();
     buildCheckoutPreview();
@@ -536,15 +563,17 @@ els.refreshBtn?.addEventListener('click', async () => {
     showFlash('Dashboard lisensi berhasil diperbarui.', 'success');
   } catch (error) {
     if (error instanceof ApiError && [401, 403].includes(error.status)) {
-      handleAuthFailure(error);
+      await handleAuthFailure(error);
       return;
     }
     showFlash(error.message || 'Dashboard gagal dimuat ulang.', 'error');
   }
 });
 
-els.logoutBtn?.addEventListener('click', () => {
-  clearAdminSecret();
+els.logoutBtn?.addEventListener('click', async () => {
+  if (state.supabase) {
+    await state.supabase.auth.signOut();
+  }
   window.location.href = '/admin';
 });
 

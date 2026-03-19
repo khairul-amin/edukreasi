@@ -1,10 +1,7 @@
-import { buildAdminHeaders, clearAdminSecret, getAdminSecret, setAdminSecret } from './admin-session.js';
+import { getBrowserSupabase } from './supabase-browser.js';
 
-const form = document.getElementById('loginForm');
-const secretInput = document.getElementById('adminSecret');
-const rememberInput = document.getElementById('rememberSecret');
-const statusText = document.getElementById('statusText');
 const loginBtn = document.getElementById('loginBtn');
+const statusText = document.getElementById('statusText');
 
 function setStatus(message, tone = 'neutral') {
   const tones = {
@@ -16,61 +13,40 @@ function setStatus(message, tone = 'neutral') {
   statusText.textContent = message;
 }
 
-async function validateSecret(secret) {
-  const response = await fetch('/api/admin/dashboard?limit=1', {
-    headers: buildAdminHeaders(secret)
-  });
+async function redirectIfSessionExists() {
+  const supabase = await getBrowserSupabase();
+  const {
+    data: { session }
+  } = await supabase.auth.getSession();
 
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok || !data.success) {
-    throw new Error(data.message || 'Admin secret tidak valid.');
-  }
+  if (!session) return;
 
-  return data;
+  setStatus('Sesi Google ditemukan, membuka dashboard lisensi...', 'success');
+  window.location.href = '/admin/dashboard';
 }
 
-async function bootWithExistingSecret() {
-  const storedSecret = getAdminSecret();
-  if (!storedSecret) return;
-
-  setStatus('Memeriksa sesi admin yang tersimpan...', 'neutral');
-  try {
-    await validateSecret(storedSecret);
-    setStatus('Sesi admin valid, membuka dashboard...', 'success');
-    window.location.href = '/admin/dashboard';
-  } catch (error) {
-    clearAdminSecret();
-    setStatus(error.message || 'Sesi tersimpan tidak lagi valid.', 'error');
-  }
-}
-
-form?.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const secret = secretInput.value.trim();
-  const remember = Boolean(rememberInput.checked);
-
-  if (!secret) {
-    setStatus('Admin secret wajib diisi.', 'error');
-    secretInput.focus();
-    return;
-  }
-
+loginBtn?.addEventListener('click', async () => {
   loginBtn.disabled = true;
-  loginBtn.textContent = 'Memverifikasi...';
-  setStatus('Memverifikasi akses admin ke server lisensi...', 'neutral');
+  setStatus('Menghubungkan ke Google Login...', 'neutral');
 
   try {
-    await validateSecret(secret);
-    setAdminSecret(secret, remember);
-    setStatus('Akses admin valid. Mengalihkan ke dashboard...', 'success');
-    window.location.href = '/admin/dashboard';
+    const supabase = await getBrowserSupabase();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/admin/dashboard`
+      }
+    });
+
+    if (error) {
+      throw error;
+    }
   } catch (error) {
-    clearAdminSecret();
-    setStatus(error.message || 'Admin secret tidak valid.', 'error');
-  } finally {
     loginBtn.disabled = false;
-    loginBtn.textContent = 'Masuk ke Dashboard';
+    setStatus(error.message || 'Google login gagal diproses.', 'error');
   }
 });
 
-bootWithExistingSecret();
+redirectIfSessionExists().catch((error) => {
+  setStatus(error.message || 'Konfigurasi Google login gagal dimuat.', 'error');
+});
