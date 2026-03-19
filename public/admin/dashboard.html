@@ -4,187 +4,231 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard Sistem Lisensi | Edukreasi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <script>
+    window.tailwind = {
+      config: {
+        theme: {
+          extend: {
+            fontFamily: {
+              display: ['Space Grotesk', 'sans-serif'],
+              body: ['IBM Plex Sans', 'sans-serif']
+            }
+          }
+        }
+      }
+    };
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'IBM Plex Sans', sans-serif;
+    }
+
+    ::selection {
+      background: rgba(45, 212, 191, 0.35);
+      color: white;
+    }
+
+    .glass-panel {
+      box-shadow: 0 24px 80px rgba(3, 7, 18, 0.35);
+    }
+  </style>
   <script type="module" src="../js/dashboard.js" defer></script>
 </head>
-<body class="min-h-screen bg-stone-950 text-stone-100">
-  <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.14),_transparent_26%),radial-gradient(circle_at_bottom_right,_rgba(251,191,36,0.12),_transparent_30%),linear-gradient(180deg,_#0c0a09,_#111827)]">
-    <header class="sticky top-0 z-20 border-b border-white/10 bg-stone-950/80 backdrop-blur-xl">
-      <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 lg:px-6">
+<body class="min-h-screen bg-[#07131b] text-stone-100 font-body">
+  <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(45,212,191,0.16),_transparent_24%),radial-gradient(circle_at_85%_15%,_rgba(245,158,11,0.14),_transparent_22%),radial-gradient(circle_at_bottom_right,_rgba(14,165,233,0.16),_transparent_28%),linear-gradient(180deg,_#07131b,_#111827_62%,_#0f172a)]">
+    <header class="sticky top-0 z-30 border-b border-white/10 bg-[#07131b]/85 backdrop-blur-2xl">
+      <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 lg:px-6">
         <div>
-          <p id="heroBadge" class="text-xs uppercase tracking-[0.35em] text-sky-300">License Control Room</p>
-          <h1 class="mt-1 text-xl font-bold text-white lg:text-2xl">Dashboard Sistem Lisensi Edukreasi</h1>
+          <p class="text-xs font-semibold uppercase tracking-[0.38em] text-teal-200/80">License Control Room</p>
+          <h1 class="mt-2 font-display text-2xl font-bold text-white lg:text-3xl">Dashboard Sistem Lisensi Edukreasi</h1>
+          <p id="updatedAtLabel" class="mt-2 text-sm text-stone-400">Menunggu sinkron data...</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center justify-end gap-3">
           <div id="userIdentity"></div>
-          <button id="refreshBtn" type="button" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-100 hover:bg-white/10">Refresh</button>
-          <button id="logoutBtn" type="button" class="rounded-2xl border border-rose-300/20 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-100 hover:bg-rose-500/20">Logout</button>
+          <button id="refreshBtn" type="button" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:bg-white/10">Refresh</button>
+          <button id="logoutBtn" type="button" class="rounded-2xl border border-rose-300/20 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-100 transition hover:bg-rose-500/20">Logout</button>
         </div>
       </div>
     </header>
 
     <main class="mx-auto max-w-7xl px-4 pb-20 pt-8 lg:px-6">
-      <section class="rounded-[2rem] border border-white/10 bg-white/5 p-6 shadow-2xl shadow-stone-950/30 backdrop-blur-xl lg:p-8">
-        <div class="grid gap-8 lg:grid-cols-[1.25fr_0.75fr]">
-          <div>
-            <p class="text-xs uppercase tracking-[0.35em] text-stone-400">Admin-Only Server</p>
-            <h2 class="mt-3 text-3xl font-black text-white lg:text-5xl">Semua lisensi client sekarang diterbitkan dari sini.</h2>
-            <p id="heroSubtitle" class="mt-4 max-w-3xl text-base text-stone-300 lg:text-lg">Dashboard ini dipakai untuk mengelola lisensi, memantau checkout Midtrans, dan menandatangani token online tanpa lagi bergantung pada server lisensi di project client.</p>
+      <section class="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <article class="glass-panel overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.06] p-6 backdrop-blur-2xl lg:p-8">
+          <div class="max-w-3xl">
+            <p class="text-xs font-semibold uppercase tracking-[0.38em] text-stone-400">Admin-Only Server</p>
+            <h2 class="mt-4 font-display text-3xl font-bold leading-tight text-white lg:text-5xl">Semua lisensi client sekarang diterbitkan, dipantau, dan diverifikasi dari satu dashboard.</h2>
+            <p id="heroSubtitle" class="mt-4 max-w-2xl text-base leading-7 text-stone-300 lg:text-lg">Dashboard ini dipakai untuk mengelola lisensi, memantau checkout Midtrans, dan menandatangani token online tanpa lagi bergantung pada server lisensi di project client.</p>
           </div>
-          <div>
-            <div id="publicConfigMeta" class="grid gap-4"></div>
-            <div class="mt-4 rounded-3xl border border-white/10 bg-stone-950/50 p-4">
-              <p class="text-xs uppercase tracking-[0.3em] text-stone-400">Public Key Client</p>
-              <a id="publicKeyLink" class="mt-2 block break-all text-sm text-emerald-300 underline" href="#" target="_blank" rel="noreferrer">Memuat endpoint...</a>
+          <div id="publicConfigMeta" class="mt-8 grid gap-4 sm:grid-cols-2 2xl:grid-cols-4"></div>
+          <div class="mt-6 flex flex-wrap items-center gap-4 rounded-3xl border border-white/10 bg-black/20 px-4 py-4">
+            <div>
+              <p class="text-xs uppercase tracking-[0.28em] text-stone-500">Public Key Client</p>
+              <a id="publicKeyLink" class="mt-2 block break-all text-sm text-teal-200 underline decoration-teal-300/40 underline-offset-4" href="#" target="_blank" rel="noreferrer">Memuat endpoint...</a>
             </div>
           </div>
-        </div>
+        </article>
+
+        <aside class="glass-panel rounded-[2rem] border border-white/10 bg-[#08131c]/80 p-6 backdrop-blur-2xl lg:p-7">
+          <p class="text-xs font-semibold uppercase tracking-[0.38em] text-stone-400">Aktivitas Terbaru</p>
+          <h3 class="mt-3 font-display text-2xl font-bold text-white">Yang baru saja terjadi</h3>
+          <p class="mt-3 text-sm leading-6 text-stone-300">Bagian ini merangkum order, aktivasi device, dan perubahan lisensi terbaru supaya Anda tidak perlu membaca semuanya dari tabel.</p>
+          <div id="activityFeed" class="mt-6 space-y-3"></div>
+        </aside>
       </section>
 
       <section id="flash" class="mt-6"></section>
 
-      <section class="mt-8 grid gap-6 xl:grid-cols-[1fr_1fr]">
-        <article class="rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
+      <section class="mt-8 grid gap-4 md:grid-cols-3">
+        <article class="glass-panel rounded-[1.75rem] border border-white/10 bg-white/[0.05] p-5 backdrop-blur-xl">
+          <p class="text-xs font-semibold uppercase tracking-[0.3em] text-teal-200/75">Langkah 1</p>
+          <h3 class="mt-3 font-display text-xl font-bold text-white">Kirim Link Checkout</h3>
+          <p class="mt-2 text-sm leading-6 text-stone-300">Isi NPSN dan device ID, lalu kirim tautan pembayaran ke sekolah tanpa perlu login user.</p>
+        </article>
+        <article class="glass-panel rounded-[1.75rem] border border-white/10 bg-white/[0.05] p-5 backdrop-blur-xl">
+          <p class="text-xs font-semibold uppercase tracking-[0.3em] text-amber-200/75">Langkah 2</p>
+          <h3 class="mt-3 font-display text-xl font-bold text-white">Pantau Order & Webhook</h3>
+          <p class="mt-2 text-sm leading-6 text-stone-300">Lihat mana yang pending, sukses, atau butuh pengecekan tanpa membuka banyak tab.</p>
+        </article>
+        <article class="glass-panel rounded-[1.75rem] border border-white/10 bg-white/[0.05] p-5 backdrop-blur-xl">
+          <p class="text-xs font-semibold uppercase tracking-[0.3em] text-sky-200/75">Langkah 3</p>
+          <h3 class="mt-3 font-display text-xl font-bold text-white">Terbitkan Manual Saat Mendesak</h3>
+          <p class="mt-2 text-sm leading-6 text-stone-300">Kalau ada kebutuhan urgent, Anda tetap bisa issue lisensi langsung tanpa menunggu pembayaran online.</p>
+        </article>
+      </section>
+
+      <section class="mt-8 grid gap-6 xl:grid-cols-[1.02fr_0.98fr]">
+        <article class="glass-panel rounded-[2rem] border border-white/10 bg-white/[0.05] p-6 backdrop-blur-2xl">
           <div class="mb-6">
-            <p class="text-xs uppercase tracking-[0.35em] text-stone-400">Quick Setup</p>
-            <h3 class="mt-2 text-2xl font-bold text-white">Status konfigurasi server</h3>
-            <p class="mt-2 text-sm text-stone-300">Bagian ini membantu kita cek apakah environment produksi sudah lengkap sebelum deploy penuh.</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.38em] text-stone-400">Server Readiness</p>
+            <h3 class="mt-2 font-display text-2xl font-bold text-white">Checklist konfigurasi produksi</h3>
+            <p class="mt-2 text-sm leading-6 text-stone-300">Kalau semua kotak ini terlihat sehat, dashboard dan checkout biasanya sudah aman untuk dipakai produksi.</p>
           </div>
           <div id="setupGrid" class="grid gap-4 md:grid-cols-2"></div>
         </article>
 
-        <article class="rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
+        <article class="glass-panel rounded-[2rem] border border-white/10 bg-white/[0.05] p-6 backdrop-blur-2xl">
           <div class="mb-6">
-            <p class="text-xs uppercase tracking-[0.35em] text-stone-400">Checkout Builder</p>
-            <h3 class="mt-2 text-2xl font-bold text-white">Buat tautan checkout tanpa login user</h3>
-            <p class="mt-2 text-sm text-stone-300">Isi data calon penerima lisensi, lalu salin atau buka link checkout online. Cocok kalau Anda ingin kirim link pembayaran langsung ke sekolah.</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.38em] text-stone-400">Endpoint Penting</p>
+            <h3 class="mt-2 font-display text-2xl font-bold text-white">Alamat yang dipakai client dan payment</h3>
+            <p class="mt-2 text-sm leading-6 text-stone-300">Di sini Anda bisa salin endpoint checkout, webhook, dan public key tanpa harus bongkar environment lagi.</p>
           </div>
-          <form id="checkoutBuilderForm" class="space-y-4">
-            <div>
-              <label class="mb-2 block text-sm font-semibold text-stone-200" for="builderSchoolName">Nama Sekolah</label>
-              <input id="builderSchoolName" type="text" class="w-full rounded-2xl border border-white/10 bg-stone-950/60 px-4 py-3 text-white outline-none placeholder:text-stone-500 focus:border-sky-400/40" placeholder="Contoh: SMP Islam Edukreasi" />
-            </div>
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label class="mb-2 block text-sm font-semibold text-stone-200" for="builderNpsn">NPSN</label>
-                <input id="builderNpsn" type="text" class="w-full rounded-2xl border border-white/10 bg-stone-950/60 px-4 py-3 text-white outline-none placeholder:text-stone-500 focus:border-sky-400/40" placeholder="8 digit NPSN" />
-              </div>
-              <div>
-                <label class="mb-2 block text-sm font-semibold text-stone-200" for="builderDeviceId">Device ID</label>
-                <input id="builderDeviceId" type="text" class="w-full rounded-2xl border border-white/10 bg-stone-950/60 px-4 py-3 font-mono text-white outline-none placeholder:text-stone-500 focus:border-sky-400/40" placeholder="Device ID client" />
-              </div>
-            </div>
-            <label class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-stone-300">
-              <input id="builderSimulation" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-stone-900 text-sky-300 focus:ring-sky-300" />
-              Gunakan mode simulasi tanpa Midtrans (untuk uji lokal)
-            </label>
-          </form>
-          <div class="mt-5 rounded-3xl border border-white/10 bg-stone-950/50 p-4">
-            <p class="text-xs uppercase tracking-[0.3em] text-stone-400">Preview Link</p>
-            <a id="checkoutPreview" class="mt-3 block break-all text-sm text-sky-300 underline" href="#" target="_blank" rel="noreferrer">Memuat preview checkout...</a>
-          </div>
-          <div class="mt-4 flex flex-wrap gap-3">
-            <button id="openCheckoutBtn" type="button" class="rounded-2xl bg-emerald-400 px-5 py-3 font-semibold text-stone-950 hover:bg-emerald-300">Buka Checkout</button>
-            <button id="copyCheckoutBtn" type="button" class="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 font-semibold text-white hover:bg-white/10">Salin Link</button>
-          </div>
+          <div id="systemInfo" class="grid gap-4"></div>
         </article>
       </section>
 
       <section class="mt-8">
-        <div id="metricsGrid" class="grid gap-4 lg:grid-cols-4"></div>
+        <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.38em] text-stone-400">Overview</p>
+            <h3 class="mt-2 font-display text-2xl font-bold text-white">Ringkasan data lisensi</h3>
+          </div>
+          <p class="text-sm text-stone-400">Angka di bawah diambil langsung dari Supabase dan order terbaru.</p>
+        </div>
+        <div id="metricsGrid" class="grid gap-4 md:grid-cols-2 2xl:grid-cols-4"></div>
       </section>
 
-      <section class="mt-8 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <article class="rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
+      <section class="mt-8 grid gap-6 xl:grid-cols-[1.04fr_0.96fr]">
+        <article class="glass-panel rounded-[2rem] border border-white/10 bg-white/[0.05] p-6 backdrop-blur-2xl">
           <div class="mb-6">
-            <p class="text-xs uppercase tracking-[0.35em] text-stone-400">Manual Issue</p>
-            <h3 class="mt-2 text-2xl font-bold text-white">Terbitkan lisensi tanpa menunggu pembayaran</h3>
-            <p class="mt-2 text-sm text-stone-300">Form ini adalah pengganti server lisensi lama. Token langsung dibuat dari API project web ini dan bisa segera ditempel ke client.</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.38em] text-stone-400">Checkout Builder</p>
+            <h3 class="mt-2 font-display text-2xl font-bold text-white">Buat tautan pembayaran yang siap kirim</h3>
+            <p class="mt-2 text-sm leading-6 text-stone-300">Isi data penerima lisensi. Preview link akan selalu diperbarui otomatis supaya Anda bisa copy atau buka seketika.</p>
+          </div>
+          <form id="checkoutBuilderForm" class="space-y-4">
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-stone-200" for="builderSchoolName">Nama Sekolah</label>
+              <input id="builderSchoolName" type="text" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none placeholder:text-stone-500 focus:border-teal-300/50" placeholder="Contoh: SMP Islam Edukreasi" />
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label class="mb-2 block text-sm font-semibold text-stone-200" for="builderNpsn">NPSN</label>
+                <input id="builderNpsn" type="text" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none placeholder:text-stone-500 focus:border-teal-300/50" placeholder="8 digit NPSN" />
+              </div>
+              <div>
+                <label class="mb-2 block text-sm font-semibold text-stone-200" for="builderDeviceId">Device ID</label>
+                <input id="builderDeviceId" type="text" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 font-mono text-white outline-none placeholder:text-stone-500 focus:border-teal-300/50" placeholder="Device ID client" />
+              </div>
+            </div>
+            <label class="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-sm leading-6 text-stone-300">
+              <input id="builderSimulation" type="checkbox" class="mt-1 h-4 w-4 rounded border-white/20 bg-stone-900 text-teal-300 focus:ring-teal-300" />
+              <span>
+                <span class="block font-semibold text-stone-100">Mode simulasi internal</span>
+                Gunakan hanya untuk test lokal. Jika dimatikan, checkout akan membuka Midtrans Snap sandbox/production sesuai env.
+              </span>
+            </label>
+          </form>
+          <div class="mt-5 rounded-3xl border border-white/10 bg-black/20 p-4">
+            <p class="text-xs uppercase tracking-[0.3em] text-stone-500">Preview Link</p>
+            <a id="checkoutPreview" class="mt-3 block break-all text-sm leading-6 text-teal-200 underline decoration-teal-300/40 underline-offset-4" href="#" target="_blank" rel="noreferrer">Memuat preview checkout...</a>
+          </div>
+          <div class="mt-5 flex flex-wrap gap-3">
+            <button id="openCheckoutBtn" type="button" class="rounded-2xl bg-teal-300 px-5 py-3 font-semibold text-slate-950 transition hover:bg-teal-200">Buka Checkout</button>
+            <button id="copyCheckoutBtn" type="button" class="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 font-semibold text-white transition hover:bg-white/10">Salin Link</button>
+          </div>
+        </article>
+
+        <article class="glass-panel rounded-[2rem] border border-white/10 bg-white/[0.05] p-6 backdrop-blur-2xl">
+          <div class="mb-6">
+            <p class="text-xs font-semibold uppercase tracking-[0.38em] text-stone-400">Manual Issue</p>
+            <h3 class="mt-2 font-display text-2xl font-bold text-white">Terbitkan lisensi tanpa menunggu order</h3>
+            <p class="mt-2 text-sm leading-6 text-stone-300">Gunakan ini saat sekolah butuh akses cepat. Token akan dibuat langsung dari server lisensi online Edukreasi.</p>
           </div>
           <form id="issueForm" class="space-y-4">
             <div>
               <label class="mb-2 block text-sm font-semibold text-stone-200" for="issueSchoolName">Nama Sekolah</label>
-              <input id="issueSchoolName" type="text" class="w-full rounded-2xl border border-white/10 bg-stone-950/60 px-4 py-3 text-white outline-none placeholder:text-stone-500 focus:border-amber-300/40" placeholder="Nama sekolah pemilik lisensi" />
+              <input id="issueSchoolName" type="text" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none placeholder:text-stone-500 focus:border-amber-300/50" placeholder="Nama sekolah pemilik lisensi" />
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
               <div>
                 <label class="mb-2 block text-sm font-semibold text-stone-200" for="issueNpsn">NPSN</label>
-                <input id="issueNpsn" type="text" class="w-full rounded-2xl border border-white/10 bg-stone-950/60 px-4 py-3 text-white outline-none placeholder:text-stone-500 focus:border-amber-300/40" placeholder="8 digit NPSN" />
+                <input id="issueNpsn" type="text" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none placeholder:text-stone-500 focus:border-amber-300/50" placeholder="8 digit NPSN" />
               </div>
               <div>
                 <label class="mb-2 block text-sm font-semibold text-stone-200" for="issueDeviceId">Device ID</label>
-                <input id="issueDeviceId" type="text" class="w-full rounded-2xl border border-white/10 bg-stone-950/60 px-4 py-3 font-mono text-white outline-none placeholder:text-stone-500 focus:border-amber-300/40" placeholder="Device ID client" />
+                <input id="issueDeviceId" type="text" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 font-mono text-white outline-none placeholder:text-stone-500 focus:border-amber-300/50" placeholder="Device ID client" />
               </div>
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
               <div>
                 <label class="mb-2 block text-sm font-semibold text-stone-200" for="issuePlan">Plan</label>
-                <select id="issuePlan" class="w-full rounded-2xl border border-white/10 bg-stone-950/60 px-4 py-3 text-white outline-none focus:border-amber-300/40">
+                <select id="issuePlan" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none focus:border-amber-300/50">
                   <option value="full">FULL</option>
                   <option value="trial">TRIAL</option>
                 </select>
               </div>
               <div>
                 <label class="mb-2 block text-sm font-semibold text-stone-200" for="issueActivationLimit">Batas Aktivasi</label>
-                <input id="issueActivationLimit" type="number" min="1" value="1" class="w-full rounded-2xl border border-white/10 bg-stone-950/60 px-4 py-3 text-white outline-none placeholder:text-stone-500 focus:border-amber-300/40" />
+                <input id="issueActivationLimit" type="number" min="1" value="1" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none placeholder:text-stone-500 focus:border-amber-300/50" />
               </div>
             </div>
             <div>
               <label class="mb-2 block text-sm font-semibold text-stone-200" for="issueNote">Catatan</label>
-              <textarea id="issueNote" rows="3" class="w-full rounded-2xl border border-white/10 bg-stone-950/60 px-4 py-3 text-white outline-none placeholder:text-stone-500 focus:border-amber-300/40" placeholder="Catatan internal lisensi"></textarea>
+              <textarea id="issueNote" rows="3" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none placeholder:text-stone-500 focus:border-amber-300/50" placeholder="Catatan internal lisensi"></textarea>
             </div>
-            <button type="submit" class="rounded-2xl bg-amber-300 px-5 py-3 font-semibold text-stone-950 hover:bg-amber-200">Terbitkan Lisensi</button>
+            <button type="submit" class="rounded-2xl bg-amber-300 px-5 py-3 font-semibold text-slate-950 transition hover:bg-amber-200">Terbitkan Lisensi</button>
           </form>
           <div id="issueResult" class="mt-6"></div>
         </article>
-
-        <article class="rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-          <p class="text-xs uppercase tracking-[0.35em] text-stone-400">System Info</p>
-          <h3 class="mt-2 text-2xl font-bold text-white">Endpoint yang dipakai client dan pembayaran</h3>
-          <p class="mt-2 text-sm text-stone-300">Kalau domain Vercel sudah jadi, aplikasi client cukup diarahkan ke endpoint ini. Project client tidak perlu lagi bawa server lisensi sendiri.</p>
-          <div id="systemInfo" class="mt-6"></div>
-        </article>
       </section>
 
-      <section class="mt-8 grid gap-6 xl:grid-cols-3">
-        <article class="overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl xl:col-span-1">
-          <div class="border-b border-white/10 px-6 py-4">
-            <p class="text-xs uppercase tracking-[0.35em] text-stone-400">Registry</p>
-            <h3 class="mt-2 text-xl font-bold text-white">Lisensi Tersimpan</h3>
+      <section class="mt-8 space-y-6">
+        <article class="glass-panel overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.05] backdrop-blur-2xl">
+          <div class="border-b border-white/10 px-6 py-5">
+            <p class="text-xs font-semibold uppercase tracking-[0.38em] text-stone-400">Orders</p>
+            <h3 class="mt-2 font-display text-2xl font-bold text-white">Checkout & pembayaran terbaru</h3>
           </div>
           <div class="overflow-x-auto">
             <table class="min-w-full text-sm">
               <thead class="bg-white/5 text-left text-stone-400">
                 <tr>
-                  <th class="px-4 py-3">NPSN</th>
-                  <th class="px-4 py-3">Sekolah</th>
-                  <th class="px-4 py-3">Plan</th>
-                  <th class="px-4 py-3">Limit</th>
-                  <th class="px-4 py-3">Status</th>
-                  <th class="px-4 py-3">Update</th>
-                </tr>
-              </thead>
-              <tbody id="licenseTable"></tbody>
-            </table>
-          </div>
-        </article>
-
-        <article class="overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl xl:col-span-1">
-          <div class="border-b border-white/10 px-6 py-4">
-            <p class="text-xs uppercase tracking-[0.35em] text-stone-400">Orders</p>
-            <h3 class="mt-2 text-xl font-bold text-white">Checkout & Pembayaran</h3>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
-              <thead class="bg-white/5 text-left text-stone-400">
-                <tr>
-                  <th class="px-4 py-3">Order</th>
-                  <th class="px-4 py-3">Sekolah</th>
-                  <th class="px-4 py-3">Device</th>
-                  <th class="px-4 py-3">Nominal</th>
-                  <th class="px-4 py-3">Status</th>
-                  <th class="px-4 py-3">Update</th>
-                  <th class="px-4 py-3">Aksi</th>
+                  <th class="px-5 py-4">Order</th>
+                  <th class="px-5 py-4">Pembayaran</th>
+                  <th class="px-5 py-4">Status</th>
+                  <th class="px-5 py-4">Aksi</th>
                 </tr>
               </thead>
               <tbody id="orderTable"></tbody>
@@ -192,27 +236,45 @@
           </div>
         </article>
 
-        <article class="overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl xl:col-span-1">
-          <div class="border-b border-white/10 px-6 py-4">
-            <p class="text-xs uppercase tracking-[0.35em] text-stone-400">Activations</p>
-            <h3 class="mt-2 text-xl font-bold text-white">Device Client Aktif</h3>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
-              <thead class="bg-white/5 text-left text-stone-400">
-                <tr>
-                  <th class="px-4 py-3">Sekolah</th>
-                  <th class="px-4 py-3">Device</th>
-                  <th class="px-4 py-3">Label</th>
-                  <th class="px-4 py-3">Status</th>
-                  <th class="px-4 py-3">Aktif Sejak</th>
-                  <th class="px-4 py-3">Aksi</th>
-                </tr>
-              </thead>
-              <tbody id="activationTable"></tbody>
-            </table>
-          </div>
-        </article>
+        <div class="grid gap-6 xl:grid-cols-2">
+          <article class="glass-panel overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.05] backdrop-blur-2xl">
+            <div class="border-b border-white/10 px-6 py-5">
+              <p class="text-xs font-semibold uppercase tracking-[0.38em] text-stone-400">Registry</p>
+              <h3 class="mt-2 font-display text-2xl font-bold text-white">Lisensi tersimpan</h3>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="min-w-full text-sm">
+                <thead class="bg-white/5 text-left text-stone-400">
+                  <tr>
+                    <th class="px-5 py-4">Sekolah</th>
+                    <th class="px-5 py-4">Detail Lisensi</th>
+                    <th class="px-5 py-4">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="licenseTable"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="glass-panel overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.05] backdrop-blur-2xl">
+            <div class="border-b border-white/10 px-6 py-5">
+              <p class="text-xs font-semibold uppercase tracking-[0.38em] text-stone-400">Activations</p>
+              <h3 class="mt-2 font-display text-2xl font-bold text-white">Device client aktif</h3>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="min-w-full text-sm">
+                <thead class="bg-white/5 text-left text-stone-400">
+                  <tr>
+                    <th class="px-5 py-4">Sekolah / Device</th>
+                    <th class="px-5 py-4">Aktivasi</th>
+                    <th class="px-5 py-4">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="activationTable"></tbody>
+              </table>
+            </div>
+          </article>
+        </div>
       </section>
 
       <section id="accessDenied" class="mt-8 hidden"></section>

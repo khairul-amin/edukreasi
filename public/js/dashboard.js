@@ -2,6 +2,7 @@ import { getBrowserSupabase } from './supabase-browser.js';
 
 const els = {
   heroSubtitle: document.getElementById('heroSubtitle'),
+  updatedAtLabel: document.getElementById('updatedAtLabel'),
   userIdentity: document.getElementById('userIdentity'),
   refreshBtn: document.getElementById('refreshBtn'),
   logoutBtn: document.getElementById('logoutBtn'),
@@ -9,6 +10,7 @@ const els = {
   accessDenied: document.getElementById('accessDenied'),
   publicKeyLink: document.getElementById('publicKeyLink'),
   publicConfigMeta: document.getElementById('publicConfigMeta'),
+  activityFeed: document.getElementById('activityFeed'),
   setupGrid: document.getElementById('setupGrid'),
   metricsGrid: document.getElementById('metricsGrid'),
   builderSchoolName: document.getElementById('builderSchoolName'),
@@ -38,7 +40,8 @@ const state = {
   session: null,
   admin: null,
   publicConfig: null,
-  adminData: null
+  adminData: null,
+  lastLoadedAt: null
 };
 
 class ApiError extends Error {
@@ -59,6 +62,8 @@ function escapeHtml(value) {
 }
 
 function showFlash(message, tone = 'info') {
+  if (!els.flash) return;
+
   const tones = {
     info: 'border-sky-400/40 bg-sky-500/10 text-sky-100',
     success: 'border-emerald-400/40 bg-emerald-500/10 text-emerald-100',
@@ -87,6 +92,28 @@ function formatDate(value) {
   }).format(date);
 }
 
+function formatRelative(value) {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+
+  const diffMs = date.getTime() - Date.now();
+  const rtf = new Intl.RelativeTimeFormat('id-ID', { numeric: 'auto' });
+  const minutes = Math.round(diffMs / 60000);
+
+  if (Math.abs(minutes) < 60) {
+    return rtf.format(minutes, 'minute');
+  }
+
+  const hours = Math.round(minutes / 60);
+  if (Math.abs(hours) < 24) {
+    return rtf.format(hours, 'hour');
+  }
+
+  const days = Math.round(hours / 24);
+  return rtf.format(days, 'day');
+}
+
 function formatCurrency(amount, currency = 'IDR') {
   try {
     return new Intl.NumberFormat('id-ID', {
@@ -99,14 +126,90 @@ function formatCurrency(amount, currency = 'IDR') {
   }
 }
 
+function formatNumber(value) {
+  return Number(value || 0).toLocaleString('id-ID');
+}
+
+function humanizeStatus(value) {
+  const text = String(value || '').trim().replace(/_/g, ' ');
+  if (!text) return '-';
+  return text.replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function badgeClasses(kind, value) {
+  const status = String(value || '').toLowerCase();
+
+  if (kind === 'payment') {
+    if (['paid', 'settlement', 'capture'].includes(status)) {
+      return 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100';
+    }
+    if (['pending', 'waiting_payment'].includes(status)) {
+      return 'border-amber-400/30 bg-amber-500/10 text-amber-100';
+    }
+    if (['simulation'].includes(status)) {
+      return 'border-sky-400/30 bg-sky-500/10 text-sky-100';
+    }
+    if (['cancel', 'deny', 'expire', 'error', 'failure'].includes(status)) {
+      return 'border-rose-400/30 bg-rose-500/10 text-rose-100';
+    }
+  }
+
+  if (kind === 'license') {
+    if (status === 'active') {
+      return 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100';
+    }
+    if (status === 'suspended') {
+      return 'border-amber-400/30 bg-amber-500/10 text-amber-100';
+    }
+    if (status === 'inactive') {
+      return 'border-stone-400/30 bg-stone-500/10 text-stone-200';
+    }
+  }
+
+  if (kind === 'activation') {
+    if (status === 'active') {
+      return 'border-teal-400/30 bg-teal-500/10 text-teal-100';
+    }
+    if (status === 'inactive') {
+      return 'border-rose-400/30 bg-rose-500/10 text-rose-100';
+    }
+  }
+
+  return 'border-white/15 bg-white/5 text-stone-200';
+}
+
+function renderBadge(value, kind = 'general') {
+  return `<span class="inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] ${badgeClasses(kind, value)}">${escapeHtml(humanizeStatus(value))}</span>`;
+}
+
+function setUpdatedAtLabel() {
+  if (!els.updatedAtLabel) return;
+  if (!state.lastLoadedAt) {
+    els.updatedAtLabel.textContent = 'Menunggu sinkron data...';
+    return;
+  }
+
+  els.updatedAtLabel.textContent = `Terakhir disegarkan ${formatDate(state.lastLoadedAt)} (${formatRelative(state.lastLoadedAt)})`;
+}
+
 function fillIdentity(admin) {
   const label = admin?.name || admin?.email || 'Superadmin';
-  const role = admin?.role || 'superadmin';
+  const email = admin?.email || 'Akun admin';
+  const initials = label
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'SA';
 
   els.userIdentity.innerHTML = `
-    <div class="rounded-2xl border border-amber-300/20 bg-amber-400/10 px-4 py-2 text-sm text-amber-100">
-      <div class="font-semibold">${escapeHtml(label)}</div>
-      <div class="text-xs uppercase tracking-[0.3em] opacity-80">${escapeHtml(role)}</div>
+    <div class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-left">
+      <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-300 to-sky-400 font-display text-sm font-bold text-slate-950">${escapeHtml(initials)}</div>
+      <div>
+        <div class="text-sm font-semibold text-white">${escapeHtml(label)}</div>
+        <div class="text-xs uppercase tracking-[0.28em] text-stone-400">${escapeHtml(admin?.role || 'superadmin')}</div>
+        <div class="mt-1 text-xs text-stone-500">${escapeHtml(email)}</div>
+      </div>
     </div>
   `;
 }
@@ -154,12 +257,6 @@ function paymentModeLabel(mode) {
   return String(mode || '').toLowerCase() === 'production' ? 'Production' : 'Sandbox';
 }
 
-function paymentModeTone(mode) {
-  return String(mode || '').toLowerCase() === 'production'
-    ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100'
-    : 'border-amber-400/20 bg-amber-500/10 text-amber-100';
-}
-
 function buildCheckoutPreview() {
   const baseUrl = state.publicConfig?.checkoutPageUrl || `${window.location.origin}/checkout`;
   const params = new URLSearchParams();
@@ -178,61 +275,78 @@ function buildCheckoutPreview() {
   els.checkoutPreview.href = url;
   return url;
 }
-
 function renderPublicMeta() {
   const config = state.publicConfig;
   if (!config) return;
 
+  const items = [
+    {
+      label: 'Harga Checkout',
+      value: config.priceLabel || formatCurrency(config.price, config.currency),
+      detail: 'Nominal default untuk checkout online',
+      tone: 'border-white/10 bg-white/5 text-white'
+    },
+    {
+      label: 'Plan Default',
+      value: String(config.plan || 'full').toUpperCase(),
+      detail: `Batas aktivasi default ${formatNumber(config.activationLimit)} device`,
+      tone: 'border-white/10 bg-white/5 text-white'
+    },
+    {
+      label: 'Mode Pembayaran',
+      value: config.paymentEnabled ? `Midtrans ${paymentModeLabel(config.paymentMode)}` : 'Simulasi Internal',
+      detail: config.paymentEnabled ? 'Snap siap dibuka dari halaman checkout' : 'Lengkapi env Midtrans untuk popup checkout',
+      tone: config.paymentEnabled
+        ? 'border-teal-400/20 bg-teal-500/10 text-teal-100'
+        : 'border-amber-400/20 bg-amber-500/10 text-amber-100'
+    },
+    {
+      label: 'Public Base URL',
+      value: config.publicBaseUrl || window.location.origin,
+      detail: 'Domain dasar yang dipakai checkout dan webhook',
+      tone: 'border-sky-400/20 bg-sky-500/10 text-sky-100'
+    }
+  ];
+
   els.publicKeyLink.href = config.publicKeyUrl;
   els.publicKeyLink.textContent = config.publicKeyUrl;
-  els.publicConfigMeta.innerHTML = `
-    <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-      <p class="text-xs uppercase tracking-[0.3em] text-stone-400">Paket Default</p>
-      <p class="mt-2 text-lg font-semibold text-white">${escapeHtml(String(config.plan || 'full').toUpperCase())}</p>
-    </div>
-    <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-      <p class="text-xs uppercase tracking-[0.3em] text-stone-400">Harga Checkout</p>
-      <p class="mt-2 text-lg font-semibold text-white">${escapeHtml(config.priceLabel || formatCurrency(config.price, config.currency))}</p>
-    </div>
-    <div class="rounded-2xl border ${paymentModeTone(config.paymentMode)} p-4">
-      <p class="text-xs uppercase tracking-[0.3em] opacity-80">Mode Pembayaran</p>
-      <p class="mt-2 text-lg font-semibold">${escapeHtml(paymentModeLabel(config.paymentMode))}</p>
-    </div>
-  `;
+  els.publicConfigMeta.innerHTML = items.map((item) => `
+    <article class="rounded-[1.6rem] border p-4 ${item.tone}">
+      <p class="text-xs uppercase tracking-[0.3em] opacity-75">${escapeHtml(item.label)}</p>
+      <p class="mt-3 break-words font-display text-xl font-bold leading-tight">${escapeHtml(item.value)}</p>
+      <p class="mt-2 text-sm leading-6 opacity-85">${escapeHtml(item.detail)}</p>
+    </article>
+  `).join('');
 }
 
 function renderSetupGrid(config) {
+  const paymentPopupReady = Boolean(state.publicConfig?.paymentEnabled);
   const items = [
     {
-      label: 'Supabase API',
-      ok: true,
-      detail: 'Terhubung karena dashboard berhasil membaca data lisensi.'
-    },
-    {
-      label: 'Google Auth',
-      ok: true,
-      detail: 'Login admin memakai OAuth Google dari Supabase.'
-    },
-    {
-      label: 'Akses Superadmin',
+      label: 'Google Auth Superadmin',
       ok: config.authMode === 'user',
       detail: config.authMode === 'user'
-        ? 'Akun ini lolos validasi tabel users dengan role superadmin.'
-        : 'Akun belum tervalidasi sebagai superadmin.'
+        ? 'Akun login lolos validasi di tabel users dengan role superadmin.'
+        : 'Akun aktif belum dikenali sebagai superadmin.'
     },
     {
       label: 'Key Pair Lisensi',
       ok: Boolean(config.privateKeyReady && config.publicKeyReady),
       detail: config.privateKeyReady && config.publicKeyReady
-        ? 'Private key dan public key siap untuk signing token.'
-        : 'LICENSE_PRIVATE_KEY / LICENSE_PUBLIC_KEY belum lengkap.'
+        ? 'Server sudah bisa sign token dan client bisa verifikasi public key.'
+        : 'LICENSE_PRIVATE_KEY atau LICENSE_PUBLIC_KEY belum lengkap.'
     },
     {
-      label: 'Midtrans',
-      ok: Boolean(config.midtransEnabled),
-      detail: config.midtransEnabled
-        ? `Server key aktif dalam mode ${paymentModeLabel(config.paymentMode)}.`
-        : 'MIDTRANS_SERVER_KEY belum diisi. Checkout hanya bisa simulasi.'
+      label: 'Supabase Server',
+      ok: true,
+      detail: 'Dashboard berhasil membaca lisensi, order, dan aktivasi dari Supabase.'
+    },
+    {
+      label: 'Midtrans Snap',
+      ok: paymentPopupReady,
+      detail: paymentPopupReady
+        ? `Popup checkout aktif dalam mode ${paymentModeLabel(config.paymentMode)}.`
+        : 'MIDTRANS_SERVER_KEY atau MIDTRANS_CLIENT_KEY belum lengkap di Vercel.'
     }
   ];
 
@@ -240,15 +354,17 @@ function renderSetupGrid(config) {
     const tone = item.ok
       ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100'
       : 'border-amber-400/20 bg-amber-500/10 text-amber-100';
-    const badge = item.ok ? 'SIAP' : 'PERLU DIISI';
+
     return `
-      <div class="rounded-3xl border ${tone} p-4">
-        <div class="flex items-center justify-between gap-3">
-          <p class="text-sm font-semibold">${escapeHtml(item.label)}</p>
-          <span class="rounded-full border border-current/20 px-3 py-1 text-[11px] font-bold tracking-[0.25em]">${badge}</span>
+      <article class="rounded-[1.6rem] border p-4 ${tone}">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-sm font-semibold">${escapeHtml(item.label)}</p>
+            <p class="mt-2 text-sm leading-6 opacity-90">${escapeHtml(item.detail)}</p>
+          </div>
+          <span class="mt-1 inline-flex h-3 w-3 shrink-0 rounded-full ${item.ok ? 'bg-emerald-300' : 'bg-amber-300'}"></span>
         </div>
-        <p class="mt-3 text-sm opacity-90">${escapeHtml(item.detail)}</p>
-      </div>
+      </article>
     `;
   }).join('');
 }
@@ -257,138 +373,160 @@ function renderMetricCards(metrics, currency) {
   const cards = [
     {
       label: 'Total Lisensi',
-      value: metrics.totalLicenses,
-      accent: 'from-sky-400/20 to-sky-500/5',
-      note: 'Lisensi yang tersimpan di Supabase'
+      value: formatNumber(metrics.totalLicenses),
+      note: 'Semua lisensi yang tersimpan di registry',
+      accent: 'from-teal-400/20 via-teal-400/5 to-transparent'
     },
     {
-      label: 'Aktivasi Hidup',
-      value: metrics.activeActivations,
-      accent: 'from-emerald-400/20 to-emerald-500/5',
-      note: 'Perangkat client yang masih aktif'
+      label: 'Device Aktif',
+      value: formatNumber(metrics.activeActivations),
+      note: 'Perangkat client yang saat ini masih aktif',
+      accent: 'from-sky-400/20 via-sky-400/5 to-transparent'
     },
     {
-      label: 'Order Pending',
-      value: metrics.pendingOrders,
-      accent: 'from-amber-400/20 to-amber-500/5',
-      note: 'Menunggu pembayaran atau webhook'
+      label: 'Order Sukses',
+      value: formatNumber(metrics.successfulOrders),
+      note: `Pending saat ini: ${formatNumber(metrics.pendingOrders)}`,
+      accent: 'from-amber-400/20 via-amber-400/5 to-transparent'
     },
     {
       label: 'Omzet Tercatat',
       value: formatCurrency(metrics.revenue || 0, currency),
-      accent: 'from-fuchsia-400/20 to-fuchsia-500/5',
-      note: 'Akumulasi order sukses'
+      note: 'Akumulasi order berstatus paid / settlement / capture',
+      accent: 'from-cyan-400/20 via-cyan-400/5 to-transparent'
     }
   ];
 
   els.metricsGrid.innerHTML = cards.map((card) => `
-    <article class="rounded-3xl border border-white/10 bg-gradient-to-br ${card.accent} p-5 shadow-lg shadow-stone-950/40">
-      <p class="text-xs uppercase tracking-[0.3em] text-stone-400">${escapeHtml(card.label)}</p>
-      <p class="mt-4 text-3xl font-semibold text-white">${escapeHtml(String(card.value))}</p>
-      <p class="mt-2 text-sm text-stone-300">${escapeHtml(card.note)}</p>
+    <article class="rounded-[1.7rem] border border-white/10 bg-gradient-to-br ${card.accent} p-5 backdrop-blur-xl">
+      <p class="text-xs font-semibold uppercase tracking-[0.3em] text-stone-400">${escapeHtml(card.label)}</p>
+      <p class="mt-4 font-display text-3xl font-bold text-white">${escapeHtml(card.value)}</p>
+      <p class="mt-3 text-sm leading-6 text-stone-300">${escapeHtml(card.note)}</p>
     </article>
   `).join('');
 }
 
 function renderSystemInfo(config) {
-  const paymentStatus = config.midtransEnabled
-    ? `${paymentModeLabel(config.paymentMode)} aktif`
-    : 'Belum aktif';
+  const items = [
+    {
+      label: 'Checkout Publik',
+      value: config.checkoutPageUrl,
+      href: config.checkoutPageUrl,
+      copy: config.checkoutPageUrl,
+      caption: 'Link ini bisa Anda kirim langsung ke sekolah.'
+    },
+    {
+      label: 'Webhook Midtrans',
+      value: config.webhookUrl,
+      copy: config.webhookUrl,
+      caption: 'Masukkan ke Notification URL di dashboard Midtrans.'
+    },
+    {
+      label: 'Public Key',
+      value: config.publicKeyUrl,
+      href: config.publicKeyUrl,
+      copy: config.publicKeyUrl,
+      caption: 'Dipakai client untuk verifikasi token lisensi.'
+    },
+    {
+      label: 'Info Payment',
+      value: config.midtransMerchantId
+        ? `Merchant ${config.midtransMerchantId} - ${paymentModeLabel(config.paymentMode)}`
+        : `Midtrans ${paymentModeLabel(config.paymentMode)}`,
+      copy: config.midtransMerchantId || '',
+      caption: 'Ringkasan koneksi payment yang aktif di server.'
+    }
+  ];
 
-  els.systemInfo.innerHTML = `
-    <div class="grid gap-4 lg:grid-cols-2">
-      <div class="rounded-2xl border border-white/10 bg-white/5 p-4 lg:col-span-2">
-        <p class="text-xs uppercase tracking-[0.3em] text-stone-400">Checkout</p>
-        <a class="mt-2 block break-all text-sm text-sky-300 underline" href="${escapeHtml(config.checkoutPageUrl)}" target="_blank" rel="noreferrer">${escapeHtml(config.checkoutPageUrl)}</a>
+  els.systemInfo.innerHTML = items.map((item) => `
+    <article class="rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0 flex-1">
+          <p class="text-xs uppercase tracking-[0.28em] text-stone-500">${escapeHtml(item.label)}</p>
+          ${item.href
+            ? `<a class="mt-3 block break-all text-sm leading-6 text-teal-200 underline decoration-teal-300/35 underline-offset-4" href="${escapeHtml(item.href)}" target="_blank" rel="noreferrer">${escapeHtml(item.value)}</a>`
+            : `<p class="mt-3 break-all text-sm leading-6 text-stone-100">${escapeHtml(item.value)}</p>`}
+          <p class="mt-2 text-sm leading-6 text-stone-400">${escapeHtml(item.caption)}</p>
+        </div>
+        ${item.copy ? `<button type="button" data-copy-text="${escapeHtml(item.copy)}" data-copy-label="${escapeHtml(item.label)}" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10">Salin</button>` : ''}
       </div>
-      <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-        <p class="text-xs uppercase tracking-[0.3em] text-stone-400">Webhook Midtrans</p>
-        <p class="mt-2 break-all text-sm text-stone-200">${escapeHtml(config.webhookUrl)}</p>
-      </div>
-      <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-        <p class="text-xs uppercase tracking-[0.3em] text-stone-400">Public Key</p>
-        <a class="mt-2 block break-all text-sm text-emerald-300 underline" href="${escapeHtml(config.publicKeyUrl)}" target="_blank" rel="noreferrer">${escapeHtml(config.publicKeyUrl)}</a>
-      </div>
-      <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-        <p class="text-xs uppercase tracking-[0.3em] text-stone-400">Metode Admin</p>
-        <p class="mt-2 text-sm text-white">Google login + role superadmin di tabel users</p>
-      </div>
-      <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-        <p class="text-xs uppercase tracking-[0.3em] text-stone-400">Status Midtrans</p>
-        <p class="mt-2 text-sm text-white">${escapeHtml(paymentStatus)}</p>
-      </div>
-    </div>
-  `;
+    </article>
+  `).join('');
 }
 
+function renderEmptyRow(colspan, message) {
+  return `<tr><td colspan="${colspan}" class="px-5 py-8 text-center text-stone-400">${escapeHtml(message)}</td></tr>`;
+}
 function renderLicenseTable(rows) {
   if (!rows.length) {
-    els.licenseTable.innerHTML = '<tr><td colspan="6" class="px-4 py-5 text-center text-stone-400">Belum ada lisensi yang tersimpan.</td></tr>';
+    els.licenseTable.innerHTML = renderEmptyRow(3, 'Belum ada lisensi yang tersimpan.');
     return;
   }
 
   els.licenseTable.innerHTML = rows.map((row) => `
-    <tr class="border-b border-white/5">
-      <td class="px-4 py-3 font-mono text-xs text-stone-200">${escapeHtml(row.npsn || '-')}</td>
-      <td class="px-4 py-3">${escapeHtml(row.school_name || '-')}</td>
-      <td class="px-4 py-3 uppercase text-stone-300">${escapeHtml(String(row.plan || 'full'))}</td>
-      <td class="px-4 py-3">${escapeHtml(String(row.activation_limit || 1))}</td>
-      <td class="px-4 py-3">${escapeHtml(row.status || 'active')}</td>
-      <td class="px-4 py-3 text-stone-400">${escapeHtml(formatDate(row.updated_at))}</td>
+    <tr class="border-b border-white/5 align-top last:border-b-0">
+      <td class="px-5 py-4">
+        <div class="font-semibold text-white">${escapeHtml(row.school_name || 'Nama sekolah belum diisi')}</div>
+        <div class="mt-2 font-mono text-xs text-stone-400">${escapeHtml(row.npsn || '-')}</div>
+      </td>
+      <td class="px-5 py-4">
+        <div class="flex flex-wrap gap-2">${renderBadge(row.plan || 'full', 'license')}</div>
+        <div class="mt-3 text-sm text-stone-300">Batas aktivasi: ${escapeHtml(String(row.activation_limit || 1))} device</div>
+        <div class="mt-2 text-sm leading-6 text-stone-400">${escapeHtml(row.note || 'Tanpa catatan internal.')}</div>
+      </td>
+      <td class="px-5 py-4">
+        ${renderBadge(row.status || 'active', 'license')}
+        <div class="mt-3 text-sm text-stone-300">Update: ${escapeHtml(formatDate(row.updated_at))}</div>
+        <div class="mt-1 text-xs text-stone-500">${escapeHtml(formatRelative(row.updated_at))}</div>
+      </td>
     </tr>
   `).join('');
 }
 
 function renderOrderTable(rows, currency) {
   if (!rows.length) {
-    els.orderTable.innerHTML = '<tr><td colspan="7" class="px-4 py-5 text-center text-stone-400">Belum ada order lisensi.</td></tr>';
+    els.orderTable.innerHTML = renderEmptyRow(4, 'Belum ada order lisensi.');
     return;
   }
 
-  els.orderTable.innerHTML = rows.map((row) => `
-    <tr class="border-b border-white/5">
-      <td class="px-4 py-3 font-mono text-xs text-stone-200">${escapeHtml(row.order_id)}</td>
-      <td class="px-4 py-3">${escapeHtml(row.school_name || row.npsn || '-')}</td>
-      <td class="px-4 py-3 font-mono text-xs text-stone-300">${escapeHtml(row.device_id || '-')}</td>
-      <td class="px-4 py-3">${escapeHtml(formatCurrency(row.amount, row.currency || currency))}</td>
-      <td class="px-4 py-3 uppercase text-stone-300">${escapeHtml(row.status || 'pending')}</td>
-      <td class="px-4 py-3 text-stone-400">${escapeHtml(formatDate(row.updated_at))}</td>
-      <td class="px-4 py-3">
-        <a class="text-sky-300 underline" href="/checkout/complete?order_id=${encodeURIComponent(row.order_id)}" target="_blank" rel="noreferrer">Lihat</a>
-      </td>
-    </tr>
-  `).join('');
-}
+  els.orderTable.innerHTML = rows.map((row) => {
+    const provider = [row.payment_provider, row.payment_type].filter(Boolean).join(' / ') || 'midtrans';
+    const paidOrUpdated = row.paid_at || row.updated_at || row.created_at;
 
-function renderActivationTable(rows) {
-  if (!rows.length) {
-    els.activationTable.innerHTML = '<tr><td colspan="6" class="px-4 py-5 text-center text-stone-400">Belum ada aktivasi lisensi.</td></tr>';
-    return;
-  }
-
-  els.activationTable.innerHTML = rows.map((row) => {
-    const license = row.licenses || {};
     return `
-      <tr class="border-b border-white/5">
-        <td class="px-4 py-3">${escapeHtml(license.school_name || license.npsn || '-')}</td>
-        <td class="px-4 py-3 font-mono text-xs text-stone-300">${escapeHtml(row.device_id || '-')}</td>
-        <td class="px-4 py-3">${escapeHtml(row.device_label || '-')}</td>
-        <td class="px-4 py-3 uppercase text-stone-300">${escapeHtml(row.status || 'active')}</td>
-        <td class="px-4 py-3 text-stone-400">${escapeHtml(formatDate(row.activated_at))}</td>
-        <td class="px-4 py-3">
-          <button type="button" data-activation-id="${escapeHtml(row.id)}" class="deactivate-btn rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-200 hover:bg-rose-500/20">
-            Nonaktifkan
-          </button>
+      <tr class="border-b border-white/5 align-top last:border-b-0">
+        <td class="px-5 py-4">
+          <div class="font-mono text-xs text-stone-200">${escapeHtml(row.order_id)}</div>
+          <div class="mt-2 font-semibold text-white">${escapeHtml(row.school_name || row.npsn || 'Sekolah belum diisi')}</div>
+          <div class="mt-1 font-mono text-xs text-stone-500">Device: ${escapeHtml(row.device_id || '-')}</div>
+        </td>
+        <td class="px-5 py-4">
+          <div class="font-display text-xl font-bold text-white">${escapeHtml(formatCurrency(row.amount, row.currency || currency))}</div>
+          <div class="mt-2 text-sm text-stone-300">${escapeHtml(provider)}</div>
+          <div class="mt-1 text-xs text-stone-500">${escapeHtml(formatDate(row.created_at))}</div>
+        </td>
+        <td class="px-5 py-4">
+          ${renderBadge(row.status || 'pending', 'payment')}
+          <div class="mt-3 text-sm text-stone-300">${row.paid_at ? 'Lunas pada' : 'Update terakhir'}: ${escapeHtml(formatDate(paidOrUpdated))}</div>
+          <div class="mt-1 text-xs text-stone-500">${escapeHtml(formatRelative(paidOrUpdated))}</div>
+        </td>
+        <td class="px-5 py-4">
+          <div class="flex flex-wrap gap-2">
+            <a class="rounded-xl border border-sky-300/20 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-100 transition hover:bg-sky-500/20" href="/checkout/complete?order_id=${encodeURIComponent(row.order_id)}" target="_blank" rel="noreferrer">Lihat Status</a>
+            <button type="button" data-copy-text="${escapeHtml(row.order_id)}" data-copy-label="Order ID" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10">Salin ID</button>
+          </div>
         </td>
       </tr>
     `;
   }).join('');
+}
 
+function bindDeactivateButtons() {
   document.querySelectorAll('.deactivate-btn').forEach((button) => {
     button.addEventListener('click', async () => {
       const activationId = button.dataset.activationId;
       if (!activationId) return;
-      if (!window.confirm('Nonaktifkan aktivasi ini dari dashboard lisensi?')) return;
+      if (!window.confirm('Nonaktifkan aktivasi device ini?')) return;
       button.disabled = true;
       try {
         await apiFetch('/api/license/deactivate', {
@@ -406,16 +544,121 @@ function renderActivationTable(rows) {
   });
 }
 
+function renderActivationTable(rows) {
+  if (!rows.length) {
+    els.activationTable.innerHTML = renderEmptyRow(3, 'Belum ada aktivasi lisensi.');
+    return;
+  }
+
+  els.activationTable.innerHTML = rows.map((row) => {
+    const license = row.licenses || {};
+    return `
+      <tr class="border-b border-white/5 align-top last:border-b-0">
+        <td class="px-5 py-4">
+          <div class="font-semibold text-white">${escapeHtml(license.school_name || license.npsn || 'Lisensi belum terhubung')}</div>
+          <div class="mt-2 font-mono text-xs text-stone-400">${escapeHtml(row.device_id || '-')}</div>
+        </td>
+        <td class="px-5 py-4">
+          ${renderBadge(row.status || 'active', 'activation')}
+          <div class="mt-3 text-sm text-stone-300">Aktif sejak: ${escapeHtml(formatDate(row.activated_at))}</div>
+          <div class="mt-1 text-sm text-stone-400">Label: ${escapeHtml(row.device_label || 'Belum ada label')}</div>
+        </td>
+        <td class="px-5 py-4">
+          ${String(row.status || '').toLowerCase() === 'active'
+            ? `<button type="button" data-activation-id="${escapeHtml(row.id)}" class="deactivate-btn rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/20">Nonaktifkan</button>`
+            : '<span class="text-xs text-stone-500">Sudah nonaktif</span>'}
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  bindDeactivateButtons();
+}
+
+function buildActivityItems(data) {
+  const items = [];
+
+  (data.orders || []).forEach((order) => {
+    items.push({
+      time: order.paid_at || order.updated_at || order.created_at,
+      tone: badgeClasses('payment', order.status),
+      title: `Order ${order.order_id}`,
+      label: humanizeStatus(order.status || 'pending'),
+      detail: `${order.school_name || order.npsn || 'Sekolah belum diisi'} - ${formatCurrency(order.amount, order.currency || data.config?.currency || 'IDR')}`
+    });
+  });
+
+  (data.activations || []).forEach((activation) => {
+    const schoolName = activation.licenses?.school_name || activation.licenses?.npsn || 'Lisensi aktif';
+    items.push({
+      time: activation.updated_at || activation.activated_at,
+      tone: badgeClasses('activation', activation.status),
+      title: `Aktivasi ${schoolName}`,
+      label: humanizeStatus(activation.status || 'active'),
+      detail: `${activation.device_id || '-'}${activation.device_label ? ` - ${activation.device_label}` : ''}`
+    });
+  });
+
+  (data.licenses || []).forEach((license) => {
+    items.push({
+      time: license.updated_at || license.created_at,
+      tone: badgeClasses('license', license.status),
+      title: `Lisensi ${license.school_name || license.npsn || 'baru'}`,
+      label: `${String(license.plan || 'full').toUpperCase()} / ${humanizeStatus(license.status || 'active')}`,
+      detail: `Batas ${formatNumber(license.activation_limit || 1)} device`
+    });
+  });
+
+  return items
+    .filter((item) => item.time)
+    .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+    .slice(0, 7);
+}
+
+function renderActivityFeed(data) {
+  const items = buildActivityItems(data);
+
+  if (!items.length) {
+    els.activityFeed.innerHTML = `
+      <div class="rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-sm text-stone-400">
+        Belum ada aktivitas yang bisa diringkas. Begitu ada order, lisensi, atau aktivasi baru, ringkasannya akan tampil di sini.
+      </div>
+    `;
+    return;
+  }
+
+  els.activityFeed.innerHTML = items.map((item) => `
+    <article class="rounded-[1.4rem] border border-white/10 bg-black/20 p-4">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <p class="text-sm font-semibold text-white">${escapeHtml(item.title)}</p>
+          <p class="mt-2 text-sm leading-6 text-stone-300">${escapeHtml(item.detail)}</p>
+        </div>
+        <span class="inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] ${item.tone}">${escapeHtml(item.label)}</span>
+      </div>
+      <p class="mt-3 text-xs text-stone-500">${escapeHtml(formatDate(item.time))} - ${escapeHtml(formatRelative(item.time))}</p>
+    </article>
+  `).join('');
+}
 function renderIssueResult(result) {
   els.issueResult.innerHTML = `
-    <div class="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-sm text-emerald-100">
-      <p class="font-semibold">Lisensi berhasil diterbitkan.</p>
-      <p class="mt-2">License ID: <span class="font-mono text-xs">${escapeHtml(result.license_id)}</span></p>
-      <p>Activation ID: <span class="font-mono text-xs">${escapeHtml(result.activation_id)}</span></p>
-      <textarea class="mt-3 min-h-[140px] w-full rounded-2xl border border-white/10 bg-stone-950/70 p-3 font-mono text-xs text-white">${escapeHtml(result.token)}</textarea>
-      <div class="mt-3 flex flex-wrap gap-3">
-        <button type="button" id="copyIssuedToken" class="rounded-2xl border border-emerald-300/30 bg-emerald-400/10 px-4 py-2 font-semibold text-emerald-100 hover:bg-emerald-400/20">Salin Token</button>
-        <a class="rounded-2xl border border-sky-300/30 bg-sky-400/10 px-4 py-2 font-semibold text-sky-100 hover:bg-sky-400/20" href="${escapeHtml(result.checkout_url)}" target="_blank" rel="noreferrer">Buka Checkout</a>
+    <div class="rounded-[1.7rem] border border-emerald-400/20 bg-emerald-500/10 p-5 text-sm text-emerald-100">
+      <p class="text-xs uppercase tracking-[0.3em] text-emerald-200/80">Token Siap Dipakai</p>
+      <h4 class="mt-3 font-display text-xl font-bold text-white">Lisensi berhasil diterbitkan.</h4>
+      <div class="mt-4 grid gap-3 sm:grid-cols-2">
+        <div class="rounded-2xl border border-white/10 bg-black/20 p-3">
+          <p class="text-xs uppercase tracking-[0.24em] text-emerald-200/70">License ID</p>
+          <p class="mt-2 break-all font-mono text-xs text-white">${escapeHtml(result.license_id)}</p>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-black/20 p-3">
+          <p class="text-xs uppercase tracking-[0.24em] text-emerald-200/70">Activation ID</p>
+          <p class="mt-2 break-all font-mono text-xs text-white">${escapeHtml(result.activation_id)}</p>
+        </div>
+      </div>
+      <textarea class="mt-4 min-h-[170px] w-full rounded-2xl border border-white/10 bg-black/30 p-3 font-mono text-xs text-white">${escapeHtml(result.token)}</textarea>
+      <div class="mt-4 flex flex-wrap gap-3">
+        <button type="button" id="copyIssuedToken" class="rounded-2xl border border-emerald-300/30 bg-emerald-400/10 px-4 py-2 font-semibold text-emerald-100 transition hover:bg-emerald-400/20">Salin Token</button>
+        <a class="rounded-2xl border border-sky-300/30 bg-sky-400/10 px-4 py-2 font-semibold text-sky-100 transition hover:bg-sky-400/20" href="${escapeHtml(result.checkout_url)}" target="_blank" rel="noreferrer">Buka Checkout</a>
       </div>
     </div>
   `;
@@ -467,9 +710,12 @@ async function loadAdminDashboard() {
   const data = await apiFetch('/api/admin/dashboard?limit=12');
   state.adminData = data;
   state.admin = data.admin || null;
-  fillIdentity(state.admin);
+  state.lastLoadedAt = new Date().toISOString();
 
-  els.heroSubtitle.textContent = 'Semua checkout, webhook Midtrans, aktivasi device, dan penerbitan token berjalan online dari dashboard admin yang sama.';
+  fillIdentity(state.admin);
+  setUpdatedAtLabel();
+
+  els.heroSubtitle.textContent = 'Pantau checkout, webhook Midtrans, aktivasi device, dan penerbitan token dari dashboard admin yang ringkas dan mudah dibaca.';
 
   renderSetupGrid(data.config);
   renderMetricCards(data.metrics, data.config.currency);
@@ -477,16 +723,17 @@ async function loadAdminDashboard() {
   renderLicenseTable(data.licenses || []);
   renderOrderTable(data.orders || [], data.config.currency);
   renderActivationTable(data.activations || []);
+  renderActivityFeed(data);
 }
 
 function showAccessDenied(message) {
   els.accessDenied.classList.remove('hidden');
   els.accessDenied.innerHTML = `
-    <div class="rounded-3xl border border-rose-400/20 bg-rose-500/10 p-8 text-rose-100">
+    <div class="rounded-[2rem] border border-rose-400/20 bg-rose-500/10 p-8 text-rose-100">
       <p class="text-xs uppercase tracking-[0.3em] text-rose-200/80">Akses Dibatasi</p>
-      <h2 class="mt-3 text-2xl font-semibold">${escapeHtml(message)}</h2>
-      <p class="mt-3 text-sm text-rose-100/80">Pastikan akun Google ini sudah ada di tabel users dan role-nya superadmin.</p>
-      <a class="mt-5 inline-flex rounded-2xl border border-white/10 bg-white/10 px-5 py-3 font-semibold text-white hover:bg-white/15" href="/admin">Kembali ke Login</a>
+      <h2 class="mt-3 font-display text-3xl font-bold text-white">${escapeHtml(message)}</h2>
+      <p class="mt-4 max-w-2xl text-sm leading-6 text-rose-100/80">Pastikan akun Google ini sudah ada di tabel users dan role-nya superadmin. Setelah itu login ulang ke dashboard admin.</p>
+      <a class="mt-6 inline-flex rounded-2xl border border-white/10 bg-white/10 px-5 py-3 font-semibold text-white transition hover:bg-white/15" href="/admin">Kembali ke Login</a>
     </div>
   `;
 }
@@ -530,7 +777,6 @@ async function init() {
     throw error;
   }
 }
-
 els.issueForm?.addEventListener('submit', handleIssueLicense);
 
 els.checkoutBuilderForm?.addEventListener('input', () => {
@@ -550,6 +796,10 @@ els.openCheckoutBtn?.addEventListener('click', () => {
 });
 
 els.refreshBtn?.addEventListener('click', async () => {
+  const originalLabel = els.refreshBtn.textContent;
+  els.refreshBtn.disabled = true;
+  els.refreshBtn.textContent = 'Memuat...';
+
   try {
     const {
       data: { session }
@@ -567,6 +817,9 @@ els.refreshBtn?.addEventListener('click', async () => {
       return;
     }
     showFlash(error.message || 'Dashboard gagal dimuat ulang.', 'error');
+  } finally {
+    els.refreshBtn.disabled = false;
+    els.refreshBtn.textContent = originalLabel;
   }
 });
 
@@ -575,6 +828,17 @@ els.logoutBtn?.addEventListener('click', async () => {
     await state.supabase.auth.signOut();
   }
   window.location.href = '/admin';
+});
+
+document.addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-copy-text]');
+  if (!button) return;
+
+  try {
+    await copyText(button.dataset.copyText || '', `${button.dataset.copyLabel || 'Teks'} berhasil disalin.`);
+  } catch (error) {
+    showFlash(error.message || 'Gagal menyalin teks.', 'error');
+  }
 });
 
 init().catch((error) => {
