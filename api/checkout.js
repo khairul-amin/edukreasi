@@ -1,4 +1,4 @@
-﻿import crypto from 'crypto';
+import crypto from 'crypto';
 import { getLicenseConfig } from '../lib/config.js';
 import { createServiceClient } from '../lib/supabase.js';
 import { createHttpError, methodNotAllowed, readJsonBody, sendJson } from '../lib/http.js';
@@ -37,12 +37,21 @@ export default async function handler(req, res) {
       payment_provider: 'midtrans'
     });
 
-    let redirectUrl = `${publicBaseUrl}/checkout/complete?order_id=${encodeURIComponent(orderId)}&sim=1`;
+    let redirectUrl = `${publicBaseUrl}/checkout/complete?order_id=${encodeURIComponent(orderId)}`;
     let paymentType = simulation ? 'simulation' : null;
     let snapToken = null;
     let rawJson = null;
+    let nextStatus = 'pending';
+    let paidAt = null;
 
-    if (!simulation) {
+    if (simulation) {
+      nextStatus = 'paid';
+      paidAt = new Date().toISOString();
+      rawJson = {
+        mode: 'simulation',
+        message: 'Order ditandai lunas secara internal untuk kebutuhan testing.'
+      };
+    } else {
       try {
         const midtransResponse = await createMidtransTransaction(req, {
           orderId,
@@ -71,7 +80,9 @@ export default async function handler(req, res) {
       redirect_url: redirectUrl,
       payment_type: paymentType,
       snap_token: snapToken,
-      raw_json: rawJson
+      raw_json: rawJson,
+      status: nextStatus,
+      paid_at: paidAt
     });
 
     return sendJson(res, 200, {
@@ -89,5 +100,3 @@ export default async function handler(req, res) {
     });
   }
 }
-
-
