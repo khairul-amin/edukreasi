@@ -1,111 +1,221 @@
 <!DOCTYPE html>
-<html lang="id"
-  x-data="{
-    darkMode: JSON.parse(localStorage.getItem('darkMode')) || false,
-    sidebarOpen: false
-  }"
-  x-init="$watch('darkMode', v => localStorage.setItem('darkMode', JSON.stringify(v)))"
-  :class="{ 'dark bg-gray-900 text-white': darkMode }">
-
+<html lang="id">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard Exam EduKreasi</title>
+  <title>Dashboard Sistem Lisensi | Edukreasi</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
   <script type="module" src="../js/dashboard.js" defer></script>
-  <script type="module" src="../js/qr.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
-
-<body class="flex h-screen overflow-hidden font-sans">
-
-  <!-- Sidebar -->
-  <aside class="bg-white dark:bg-gray-800 w-64 flex-shrink-0 border-r dark:border-gray-700"
-         :class="{'hidden': !sidebarOpen, 'block': sidebarOpen}">
-    <div class="p-4 text-lg font-bold border-b dark:border-gray-700">Dashboard</div>
-    <nav class="p-4 space-y-2">
-      <a href="#" class="block px-3 py-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">🏠 Dashboard</a>
-      <a href="#" class="block px-3 py-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">👤 Users</a>
-    </nav>
-  </aside>
-
-  <!-- Main Area -->
-  <div class="flex-1 flex flex-col overflow-y-auto">
-
-    <!-- Header -->
-    <header class="flex justify-between items-center bg-white dark:bg-gray-800 px-6 py-4 border-b dark:border-gray-700">
-      <div class="flex items-center gap-3">
-        <button @click="sidebarOpen = !sidebarOpen" class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
-          ☰
-        </button>
-        <h1 class="text-xl font-bold">Dashboard</h1>
-      </div>
-
-      <div class="flex items-center gap-4">
-        <button @click="darkMode = !darkMode" class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
-          <span x-show="!darkMode">🌞</span>
-          <span x-show="darkMode">🌙</span>
-        </button>
-        <p id="userEmail" class="text-gray-600 dark:text-gray-300"></p>
-        <button id="logoutBtn" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">Logout</button>
+<body class="min-h-screen bg-stone-950 text-stone-100">
+  <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.14),_transparent_26%),radial-gradient(circle_at_bottom_right,_rgba(251,191,36,0.12),_transparent_30%),linear-gradient(180deg,_#0c0a09,_#111827)]">
+    <header class="sticky top-0 z-20 border-b border-white/10 bg-stone-950/80 backdrop-blur-xl">
+      <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 lg:px-6">
+        <div>
+          <p id="heroBadge" class="text-xs uppercase tracking-[0.35em] text-sky-300">License Control Room</p>
+          <h1 class="mt-1 text-xl font-bold text-white lg:text-2xl">Dashboard Sistem Lisensi Edukreasi</h1>
+        </div>
+        <div class="flex items-center gap-3">
+          <div id="userIdentity"></div>
+          <button id="refreshBtn" type="button" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-100 hover:bg-white/10">Refresh</button>
+          <button id="logoutBtn" type="button" class="rounded-2xl border border-rose-300/20 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-100 hover:bg-rose-500/20">Logout</button>
+        </div>
       </div>
     </header>
 
-    <!-- Content -->
-    <main class="p-6 space-y-6 bg-gray-50 dark:bg-gray-900 flex-1">
-
-      <!-- Metric Cards -->
-      <section id="metricCards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></section>
-
-      <!-- User Form -->
-      <section id="userForm" class="hidden max-w-md bg-white dark:bg-gray-800 p-6 rounded shadow">
-        <h2 class="text-lg font-semibold mb-4">Data Sekolah</h2>
-        <div class="space-y-3">
-          <input id="nama" type="text" placeholder="Nama Sekolah" class="w-full border rounded p-2 dark:bg-gray-700">
-          <input id="npsn" type="text" placeholder="NPSN" class="w-full border rounded p-2 dark:bg-gray-700">
-          <input id="link" type="text" placeholder="Link Spreadsheet" class="w-full border rounded p-2 dark:bg-gray-700">
-          <input id="hp" type="text" placeholder="No. HP" class="w-full border rounded p-2 dark:bg-gray-700">
-        </div>
-
-        <div class="mt-4 flex gap-2">
-          <button id="saveBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Simpan</button>
-        </div>
-
-        <div class="mt-6 border-t pt-4">
-          <div id="qrWrapper" class="text-center space-y-2">
-            <div id="qrCode" class="flex justify-center"></div>
-            <a id="downloadQR" href="#" download="qrcode.png"
-               class="hidden bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700 inline-block">Download QR</a>
+    <main class="mx-auto max-w-7xl px-4 pb-20 pt-8 lg:px-6">
+      <section class="rounded-[2rem] border border-white/10 bg-white/5 p-6 shadow-2xl shadow-stone-950/30 backdrop-blur-xl lg:p-8">
+        <div class="grid gap-8 lg:grid-cols-[1.25fr_0.75fr]">
+          <div>
+            <p class="text-xs uppercase tracking-[0.35em] text-stone-400">Admin-Only Server</p>
+            <h2 class="mt-3 text-3xl font-black text-white lg:text-5xl">Semua lisensi client sekarang diterbitkan dari sini.</h2>
+            <p id="heroSubtitle" class="mt-4 max-w-3xl text-base text-stone-300 lg:text-lg">Dashboard ini dipakai untuk mengelola lisensi, memantau checkout Midtrans, dan menandatangani token online tanpa lagi bergantung pada server lisensi di project client.</p>
           </div>
-
-          <div class="mt-4 flex justify-center gap-2">
-            <button id="generateQRBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-              Generate QR
-            </button>
-            <button id="generateLinkBtn" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-              Generate Link Token
-            </button>
-          </div>
-
-          <div id="linkTokenWrapper" class="mt-4 hidden text-center">
-            <p class="text-gray-600 dark:text-gray-400 mb-2">Link Token Sekolah:</p>
-            <a id="linkToken" href="#" target="_blank" class="text-blue-600 underline break-all"></a>
-            <div class="mt-2">
-              <button id="copyLinkBtn" class="bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700">Salin</button>
+          <div>
+            <div id="publicConfigMeta" class="grid gap-4"></div>
+            <div class="mt-4 rounded-3xl border border-white/10 bg-stone-950/50 p-4">
+              <p class="text-xs uppercase tracking-[0.3em] text-stone-400">Public Key Client</p>
+              <a id="publicKeyLink" class="mt-2 block break-all text-sm text-emerald-300 underline" href="#" target="_blank" rel="noreferrer">Memuat endpoint...</a>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Admin Table -->
-      <section id="adminTable" class="hidden bg-white dark:bg-gray-800 rounded shadow p-4 overflow-auto">
-        <h2 class="text-lg font-semibold mb-4">Data Semua User</h2>
-        <table class="min-w-full border border-gray-300 dark:border-gray-600 table-auto">
-          <thead id="tableHead" class="bg-gray-200 dark:bg-gray-700"></thead>
-          <tbody id="tableBody"></tbody>
-        </table>
+      <section id="flash" class="mt-6"></section>
+
+      <section class="mt-8 grid gap-6 xl:grid-cols-[1fr_1fr]">
+        <article class="rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
+          <div class="mb-6">
+            <p class="text-xs uppercase tracking-[0.35em] text-stone-400">Quick Setup</p>
+            <h3 class="mt-2 text-2xl font-bold text-white">Status konfigurasi server</h3>
+            <p class="mt-2 text-sm text-stone-300">Bagian ini membantu kita cek apakah environment produksi sudah lengkap sebelum deploy penuh.</p>
+          </div>
+          <div id="setupGrid" class="grid gap-4 md:grid-cols-2"></div>
+        </article>
+
+        <article class="rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
+          <div class="mb-6">
+            <p class="text-xs uppercase tracking-[0.35em] text-stone-400">Checkout Builder</p>
+            <h3 class="mt-2 text-2xl font-bold text-white">Buat tautan checkout tanpa login user</h3>
+            <p class="mt-2 text-sm text-stone-300">Isi data calon penerima lisensi, lalu salin atau buka link checkout online. Cocok kalau Anda ingin kirim link pembayaran langsung ke sekolah.</p>
+          </div>
+          <form id="checkoutBuilderForm" class="space-y-4">
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-stone-200" for="builderSchoolName">Nama Sekolah</label>
+              <input id="builderSchoolName" type="text" class="w-full rounded-2xl border border-white/10 bg-stone-950/60 px-4 py-3 text-white outline-none placeholder:text-stone-500 focus:border-sky-400/40" placeholder="Contoh: SMP Islam Edukreasi" />
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label class="mb-2 block text-sm font-semibold text-stone-200" for="builderNpsn">NPSN</label>
+                <input id="builderNpsn" type="text" class="w-full rounded-2xl border border-white/10 bg-stone-950/60 px-4 py-3 text-white outline-none placeholder:text-stone-500 focus:border-sky-400/40" placeholder="8 digit NPSN" />
+              </div>
+              <div>
+                <label class="mb-2 block text-sm font-semibold text-stone-200" for="builderDeviceId">Device ID</label>
+                <input id="builderDeviceId" type="text" class="w-full rounded-2xl border border-white/10 bg-stone-950/60 px-4 py-3 font-mono text-white outline-none placeholder:text-stone-500 focus:border-sky-400/40" placeholder="Device ID client" />
+              </div>
+            </div>
+            <label class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-stone-300">
+              <input id="builderSimulation" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-stone-900 text-sky-300 focus:ring-sky-300" />
+              Gunakan mode simulasi tanpa Midtrans (untuk uji lokal)
+            </label>
+          </form>
+          <div class="mt-5 rounded-3xl border border-white/10 bg-stone-950/50 p-4">
+            <p class="text-xs uppercase tracking-[0.3em] text-stone-400">Preview Link</p>
+            <a id="checkoutPreview" class="mt-3 block break-all text-sm text-sky-300 underline" href="#" target="_blank" rel="noreferrer">Memuat preview checkout...</a>
+          </div>
+          <div class="mt-4 flex flex-wrap gap-3">
+            <button id="openCheckoutBtn" type="button" class="rounded-2xl bg-emerald-400 px-5 py-3 font-semibold text-stone-950 hover:bg-emerald-300">Buka Checkout</button>
+            <button id="copyCheckoutBtn" type="button" class="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 font-semibold text-white hover:bg-white/10">Salin Link</button>
+          </div>
+        </article>
       </section>
+
+      <section class="mt-8">
+        <div id="metricsGrid" class="grid gap-4 lg:grid-cols-4"></div>
+      </section>
+
+      <section class="mt-8 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+        <article class="rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
+          <div class="mb-6">
+            <p class="text-xs uppercase tracking-[0.35em] text-stone-400">Manual Issue</p>
+            <h3 class="mt-2 text-2xl font-bold text-white">Terbitkan lisensi tanpa menunggu pembayaran</h3>
+            <p class="mt-2 text-sm text-stone-300">Form ini adalah pengganti server lisensi lama. Token langsung dibuat dari API project web ini dan bisa segera ditempel ke client.</p>
+          </div>
+          <form id="issueForm" class="space-y-4">
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-stone-200" for="issueSchoolName">Nama Sekolah</label>
+              <input id="issueSchoolName" type="text" class="w-full rounded-2xl border border-white/10 bg-stone-950/60 px-4 py-3 text-white outline-none placeholder:text-stone-500 focus:border-amber-300/40" placeholder="Nama sekolah pemilik lisensi" />
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label class="mb-2 block text-sm font-semibold text-stone-200" for="issueNpsn">NPSN</label>
+                <input id="issueNpsn" type="text" class="w-full rounded-2xl border border-white/10 bg-stone-950/60 px-4 py-3 text-white outline-none placeholder:text-stone-500 focus:border-amber-300/40" placeholder="8 digit NPSN" />
+              </div>
+              <div>
+                <label class="mb-2 block text-sm font-semibold text-stone-200" for="issueDeviceId">Device ID</label>
+                <input id="issueDeviceId" type="text" class="w-full rounded-2xl border border-white/10 bg-stone-950/60 px-4 py-3 font-mono text-white outline-none placeholder:text-stone-500 focus:border-amber-300/40" placeholder="Device ID client" />
+              </div>
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label class="mb-2 block text-sm font-semibold text-stone-200" for="issuePlan">Plan</label>
+                <select id="issuePlan" class="w-full rounded-2xl border border-white/10 bg-stone-950/60 px-4 py-3 text-white outline-none focus:border-amber-300/40">
+                  <option value="full">FULL</option>
+                  <option value="trial">TRIAL</option>
+                </select>
+              </div>
+              <div>
+                <label class="mb-2 block text-sm font-semibold text-stone-200" for="issueActivationLimit">Batas Aktivasi</label>
+                <input id="issueActivationLimit" type="number" min="1" value="1" class="w-full rounded-2xl border border-white/10 bg-stone-950/60 px-4 py-3 text-white outline-none placeholder:text-stone-500 focus:border-amber-300/40" />
+              </div>
+            </div>
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-stone-200" for="issueNote">Catatan</label>
+              <textarea id="issueNote" rows="3" class="w-full rounded-2xl border border-white/10 bg-stone-950/60 px-4 py-3 text-white outline-none placeholder:text-stone-500 focus:border-amber-300/40" placeholder="Catatan internal lisensi"></textarea>
+            </div>
+            <button type="submit" class="rounded-2xl bg-amber-300 px-5 py-3 font-semibold text-stone-950 hover:bg-amber-200">Terbitkan Lisensi</button>
+          </form>
+          <div id="issueResult" class="mt-6"></div>
+        </article>
+
+        <article class="rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
+          <p class="text-xs uppercase tracking-[0.35em] text-stone-400">System Info</p>
+          <h3 class="mt-2 text-2xl font-bold text-white">Endpoint yang dipakai client dan pembayaran</h3>
+          <p class="mt-2 text-sm text-stone-300">Kalau domain Vercel sudah jadi, aplikasi client cukup diarahkan ke endpoint ini. Project client tidak perlu lagi bawa server lisensi sendiri.</p>
+          <div id="systemInfo" class="mt-6"></div>
+        </article>
+      </section>
+
+      <section class="mt-8 grid gap-6 xl:grid-cols-3">
+        <article class="overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl xl:col-span-1">
+          <div class="border-b border-white/10 px-6 py-4">
+            <p class="text-xs uppercase tracking-[0.35em] text-stone-400">Registry</p>
+            <h3 class="mt-2 text-xl font-bold text-white">Lisensi Tersimpan</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="bg-white/5 text-left text-stone-400">
+                <tr>
+                  <th class="px-4 py-3">NPSN</th>
+                  <th class="px-4 py-3">Sekolah</th>
+                  <th class="px-4 py-3">Plan</th>
+                  <th class="px-4 py-3">Limit</th>
+                  <th class="px-4 py-3">Status</th>
+                  <th class="px-4 py-3">Update</th>
+                </tr>
+              </thead>
+              <tbody id="licenseTable"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl xl:col-span-1">
+          <div class="border-b border-white/10 px-6 py-4">
+            <p class="text-xs uppercase tracking-[0.35em] text-stone-400">Orders</p>
+            <h3 class="mt-2 text-xl font-bold text-white">Checkout & Pembayaran</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="bg-white/5 text-left text-stone-400">
+                <tr>
+                  <th class="px-4 py-3">Order</th>
+                  <th class="px-4 py-3">Sekolah</th>
+                  <th class="px-4 py-3">Device</th>
+                  <th class="px-4 py-3">Nominal</th>
+                  <th class="px-4 py-3">Status</th>
+                  <th class="px-4 py-3">Update</th>
+                  <th class="px-4 py-3">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="orderTable"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl xl:col-span-1">
+          <div class="border-b border-white/10 px-6 py-4">
+            <p class="text-xs uppercase tracking-[0.35em] text-stone-400">Activations</p>
+            <h3 class="mt-2 text-xl font-bold text-white">Device Client Aktif</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="bg-white/5 text-left text-stone-400">
+                <tr>
+                  <th class="px-4 py-3">Sekolah</th>
+                  <th class="px-4 py-3">Device</th>
+                  <th class="px-4 py-3">Label</th>
+                  <th class="px-4 py-3">Status</th>
+                  <th class="px-4 py-3">Aktif Sejak</th>
+                  <th class="px-4 py-3">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="activationTable"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section id="accessDenied" class="mt-8 hidden"></section>
     </main>
   </div>
 </body>

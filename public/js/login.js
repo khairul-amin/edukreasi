@@ -1,51 +1,76 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { buildAdminHeaders, clearAdminSecret, getAdminSecret, setAdminSecret } from './admin-session.js';
 
-const supabase = createClient(
-  'https://esmkveggutxzklavspnn.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzbWt2ZWdndXR4emtsYXZzcG5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzODIyNTQsImV4cCI6MjA3NTk1ODI1NH0.18vlPWg1S_6ocoCWKaCh_KU41TbipXyQNS2r5GKRQ44'
-);
-
+const form = document.getElementById('loginForm');
+const secretInput = document.getElementById('adminSecret');
+const rememberInput = document.getElementById('rememberSecret');
+const statusText = document.getElementById('statusText');
 const loginBtn = document.getElementById('loginBtn');
 
-loginBtn.onclick = async () => {
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: 'https://edukreasi.vercel.app/admin/dashboard',
-    },
-  });
-  if (error) alert('Gagal login: ' + error.message);
-};
-
-// Cek kalau sudah login
-supabase.auth.getSession().then(async ({ data }) => {
-  if (data.session) {
-    const user = data.session.user;
-
-    // Simpan data user ke tabel users jika belum ada
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('id')
-      .eq('id', user.id)
-      .single();
-
-if (!existingUser) {
-  // --- Tentukan role otomatis ---
-  const role = (user.email === 'khairulamin2409@gmail.com')
-    ? 'superadmin'
-    : 'user';
-
-  // --- Simpan user baru ke tabel users ---
-  const { error: insertError } = await supabase.from('users').insert({
-    id: user.id,
-    email: user.email,
-    name: user.user_metadata.full_name || user.email,
-    role,
-  });
-
-  if (insertError) console.error('Gagal simpan user baru:', insertError.message);
+function setStatus(message, tone = 'neutral') {
+  const tones = {
+    neutral: 'text-stone-400',
+    success: 'text-emerald-400',
+    error: 'text-rose-400'
+  };
+  statusText.className = `mt-4 text-sm ${tones[tone] || tones.neutral}`;
+  statusText.textContent = message;
 }
 
+async function validateSecret(secret) {
+  const response = await fetch('/api/admin/dashboard?limit=1', {
+    headers: buildAdminHeaders(secret)
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || 'Admin secret tidak valid.');
+  }
+
+  return data;
+}
+
+async function bootWithExistingSecret() {
+  const storedSecret = getAdminSecret();
+  if (!storedSecret) return;
+
+  setStatus('Memeriksa sesi admin yang tersimpan...', 'neutral');
+  try {
+    await validateSecret(storedSecret);
+    setStatus('Sesi admin valid, membuka dashboard...', 'success');
     window.location.href = '/admin/dashboard';
+  } catch (error) {
+    clearAdminSecret();
+    setStatus(error.message || 'Sesi tersimpan tidak lagi valid.', 'error');
+  }
+}
+
+form?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const secret = secretInput.value.trim();
+  const remember = Boolean(rememberInput.checked);
+
+  if (!secret) {
+    setStatus('Admin secret wajib diisi.', 'error');
+    secretInput.focus();
+    return;
+  }
+
+  loginBtn.disabled = true;
+  loginBtn.textContent = 'Memverifikasi...';
+  setStatus('Memverifikasi akses admin ke server lisensi...', 'neutral');
+
+  try {
+    await validateSecret(secret);
+    setAdminSecret(secret, remember);
+    setStatus('Akses admin valid. Mengalihkan ke dashboard...', 'success');
+    window.location.href = '/admin/dashboard';
+  } catch (error) {
+    clearAdminSecret();
+    setStatus(error.message || 'Admin secret tidak valid.', 'error');
+  } finally {
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'Masuk ke Dashboard';
   }
 });
+
+bootWithExistingSecret();

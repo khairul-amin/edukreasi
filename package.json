@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "check": "node --check api/admin/dashboard.js && node --check api/admin/issue.js && node --check api/checkout.js && node --check api/license/claim.js && node --check api/license/public-config.js && node --check public/js/admin-session.js && node --check public/js/login.js && node --check public/js/dashboard.js && node --check public/js/checkout.js",
+    "gen:license-keys": "node scripts/generate-license-keypair.mjs"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.5"
   }
