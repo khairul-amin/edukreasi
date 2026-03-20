@@ -5,6 +5,7 @@
     { "src": "public/**/*", "use": "@vercel/static" }
   ],
   "routes": [
+    { "src": "/api/health", "dest": "/api/client-config?health=1" },
     { "src": "/api/(.*)", "dest": "/api/$1.js" },
     { "src": "/admin", "dest": "/public/admin/login.html" },
     { "src": "/admin/dashboard", "dest": "/public/admin/dashboard.html" },
