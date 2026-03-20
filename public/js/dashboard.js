@@ -52,7 +52,8 @@ const state = {
   adminData: null,
   lastLoadedAt: null,
   orderSort: 'recent_desc',
-  selectedOrders: new Set()
+  selectedOrders: new Set(),
+  snapLoader: null
 };
 
 class ApiError extends Error {
@@ -287,6 +288,87 @@ function buildCheckoutPreview() {
     els.checkoutPreview.href = url;
   }
   return url;
+}
+
+function buildCheckoutPayload() {
+  return {
+    npsn: els.builderNpsn?.value.trim() || '',
+    school_name: els.builderSchoolName?.value.trim() || '',
+    device_id: els.builderDeviceId?.value.trim() || '',
+    sim: els.builderSimulation?.checked ? '1' : '0'
+  };
+}
+
+function openOrderStatus(orderId) {
+  if (!orderId) return;
+  const url = new URL('/checkout/complete', window.location.origin);
+  url.searchParams.set('order_id', orderId);
+  window.open(url.toString(), '_blank', 'noopener,noreferrer');
+}
+
+function loadMidtransSnap(config) {
+  if (!config?.paymentEnabled || !config.paymentClientKey || !config.paymentScriptUrl) {
+    return Promise.resolve(false);
+  }
+
+  if (window.snap) {
+    return Promise.resolve(true);
+  }
+
+  if (state.snapLoader) {
+    return state.snapLoader;
+  }
+
+  state.snapLoader = new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[data-midtrans-snap="1"]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve(Boolean(window.snap)), { once: true });
+      existing.addEventListener('error', () => reject(new Error('Script Midtrans gagal dimuat.')), { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = config.paymentScriptUrl;
+    script.setAttribute('data-client-key', config.paymentClientKey);
+    script.setAttribute('data-midtrans-snap', '1');
+    script.async = true;
+    script.onload = () => resolve(Boolean(window.snap));
+    script.onerror = () => reject(new Error('Script Midtrans gagal dimuat.'));
+    document.head.appendChild(script);
+  });
+
+  return state.snapLoader;
+}
+
+function openDashboardSnapPopup(order) {
+  if (!window.snap || !order?.snap_token) {
+    if (order?.redirect_url) {
+      window.open(order.redirect_url, '_blank', 'noopener,noreferrer');
+    }
+    return;
+  }
+
+  showFlash('Popup pembayaran Midtrans sedang dibuka.', 'info');
+  window.snap.pay(order.snap_token, {
+    onSuccess: async () => {
+      showFlash('Pembayaran berhasil. Status order dibuka di tab baru.', 'success');
+      openOrderStatus(order.order_id);
+      await loadAdminDashboard().catch(() => {});
+    },
+    onPending: async () => {
+      showFlash('Pembayaran sedang menunggu penyelesaian. Status order dibuka di tab baru.', 'info');
+      openOrderStatus(order.order_id);
+      await loadAdminDashboard().catch(() => {});
+    },
+    onError: (result) => {
+      console.error('Midtrans error', result);
+      showFlash('Pembayaran gagal diproses Midtrans. Silakan coba lagi.', 'error');
+    },
+    onClose: async () => {
+      showFlash('Popup pembayaran ditutup. Anda bisa membuka pembayaran lagi kapan saja.', 'info');
+      await loadAdminDashboard().catch(() => {});
+    }
+  });
 }
 function renderPublicMeta() {
   const config = state.publicConfig;
@@ -782,6 +864,73 @@ async function handleLicenseConfigSubmit(event) {
   }
 }
 
+async function handleOpenCheckout() {
+  const payload = buildCheckoutPayload();
+  if (!payload.npsn || !payload.device_id) {
+    showFlash('NPSN dan Device ID wajib diisi sebelum membuka pembayaran.', 'error');
+    return;
+  }
+
+  const button = els.openCheckoutBtn;
+  const originalLabel = button?.textContent || 'Buka Checkout';
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Menyiapkan...';
+  }
+
+  try {
+    if (!state.publicConfig) {
+      await loadPublicConfig();
+    }
+
+    const order = await apiFetch('/api/checkout', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    if (order.payment_mode === 'simulation') {
+      showFlash('Order simulasi berhasil dibuat. Halaman status dibuka di tab baru.', 'success');
+      if (order.redirect_url) {
+        window.open(order.redirect_url, '_blank', 'noopener,noreferrer');
+      }
+      await loadAdminDashboard();
+      return;
+    }
+
+    if (order.snap_token && state.publicConfig?.paymentEnabled) {
+      try {
+        await loadMidtransSnap(state.publicConfig);
+        openDashboardSnapPopup(order);
+      } catch (error) {
+        console.error(error);
+        showFlash('Popup Snap gagal dimuat. Pembayaran dibuka lewat redirect URL.', 'info');
+        if (order.redirect_url) {
+          window.open(order.redirect_url, '_blank', 'noopener,noreferrer');
+        }
+      }
+      await loadAdminDashboard();
+      return;
+    }
+
+    if (order.redirect_url) {
+      window.open(order.redirect_url, '_blank', 'noopener,noreferrer');
+      showFlash('Order berhasil dibuat. Halaman pembayaran dibuka di tab baru.', 'success');
+      await loadAdminDashboard();
+      return;
+    }
+
+    showFlash('Order berhasil dibuat.', 'success');
+    await loadAdminDashboard();
+  } catch (error) {
+    showFlash(error.message || 'Checkout gagal diproses.', 'error');
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = originalLabel;
+    }
+  }
+}
+
 async function loadAdminDashboard() {
   const data = await apiFetch('/api/admin/dashboard?limit=12');
   state.adminData = data;
@@ -895,9 +1044,7 @@ els.copyCheckoutBtn?.addEventListener('click', async () => {
   }
 });
 
-els.openCheckoutBtn?.addEventListener('click', () => {
-  window.open(buildCheckoutPreview(), '_blank', 'noopener,noreferrer');
-});
+els.openCheckoutBtn?.addEventListener('click', handleOpenCheckout);
 
 els.refreshBtn?.addEventListener('click', async () => {
   const originalLabel = els.refreshBtn.textContent;
