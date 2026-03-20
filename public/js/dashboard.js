@@ -271,10 +271,10 @@ function paymentModeLabel(mode) {
 function buildCheckoutPreview() {
   const baseUrl = state.publicConfig?.checkoutPageUrl || `${window.location.origin}/checkout`;
   const params = new URLSearchParams();
-  const npsn = els.builderNpsn.value.trim();
-  const deviceId = els.builderDeviceId.value.trim();
-  const schoolName = els.builderSchoolName.value.trim();
-  const simulation = els.builderSimulation.checked;
+  const npsn = els.builderNpsn?.value.trim() || '';
+  const deviceId = els.builderDeviceId?.value.trim() || '';
+  const schoolName = els.builderSchoolName?.value.trim() || '';
+  const simulation = Boolean(els.builderSimulation?.checked);
 
   if (npsn) params.set('npsn', npsn);
   if (deviceId) params.set('device_id', deviceId);
@@ -282,13 +282,15 @@ function buildCheckoutPreview() {
   if (simulation) params.set('sim', '1');
 
   const url = `${baseUrl}${params.toString() ? `?${params.toString()}` : ''}`;
-  els.checkoutPreview.textContent = url;
-  els.checkoutPreview.href = url;
+  if (els.checkoutPreview) {
+    els.checkoutPreview.textContent = url;
+    els.checkoutPreview.href = url;
+  }
   return url;
 }
 function renderPublicMeta() {
   const config = state.publicConfig;
-  if (!config) return;
+  if (!config || !els.publicConfigMeta) return;
 
   const items = [
     {
@@ -321,8 +323,10 @@ function renderPublicMeta() {
     }
   ];
 
-  els.publicKeyLink.href = config.publicKeyUrl;
-  els.publicKeyLink.textContent = config.publicKeyUrl;
+  if (els.publicKeyLink) {
+    els.publicKeyLink.href = config.publicKeyUrl;
+    els.publicKeyLink.textContent = config.publicKeyUrl;
+  }
   els.publicConfigMeta.innerHTML = items.map((item) => `
     <article class="rounded-[1.6rem] border p-4 ${item.tone}">
       <p class="text-xs uppercase tracking-[0.3em] opacity-75">${escapeHtml(item.label)}</p>

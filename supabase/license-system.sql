@@ -72,6 +72,11 @@ create table if not exists public.license_settings (
   updated_at timestamptz not null default now()
 );
 
+alter table public.licenses enable row level security;
+alter table public.license_activations enable row level security;
+alter table public.license_orders enable row level security;
+alter table public.license_settings enable row level security;
+
 insert into public.license_settings (id, checkout_price)
 values ('default', 0)
 on conflict (id) do nothing;
@@ -106,6 +111,38 @@ create trigger trg_license_settings_updated_at
 before update on public.license_settings
 for each row
 execute function public.set_updated_at();
+
+drop policy if exists licenses_server_only_access on public.licenses;
+create policy licenses_server_only_access
+on public.licenses
+for all
+to anon, authenticated
+using (false)
+with check (false);
+
+drop policy if exists license_activations_server_only_access on public.license_activations;
+create policy license_activations_server_only_access
+on public.license_activations
+for all
+to anon, authenticated
+using (false)
+with check (false);
+
+drop policy if exists license_orders_server_only_access on public.license_orders;
+create policy license_orders_server_only_access
+on public.license_orders
+for all
+to anon, authenticated
+using (false)
+with check (false);
+
+drop policy if exists license_settings_server_only_access on public.license_settings;
+create policy license_settings_server_only_access
+on public.license_settings
+for all
+to anon, authenticated
+using (false)
+with check (false);
 
 comment on table public.licenses is 'Master lisensi online untuk Exam Edukreasi';
 comment on table public.license_activations is 'Ikatan device client ke lisensi';
