@@ -64,6 +64,18 @@ create table if not exists public.license_orders (
   constraint license_orders_npsn_format check (npsn ~ '^[0-9]{8}$')
 );
 
+create table if not exists public.license_settings (
+  id text primary key,
+  checkout_price bigint not null default 0 check (checkout_price >= 0),
+  updated_by text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+insert into public.license_settings (id, checkout_price)
+values ('default', 0)
+on conflict (id) do nothing;
+
 create index if not exists idx_licenses_status on public.licenses(status);
 create index if not exists idx_license_activations_status on public.license_activations(status);
 create index if not exists idx_license_activations_license_id on public.license_activations(license_id);
@@ -89,6 +101,13 @@ before update on public.license_orders
 for each row
 execute function public.set_updated_at();
 
+drop trigger if exists trg_license_settings_updated_at on public.license_settings;
+create trigger trg_license_settings_updated_at
+before update on public.license_settings
+for each row
+execute function public.set_updated_at();
+
 comment on table public.licenses is 'Master lisensi online untuk Exam Edukreasi';
 comment on table public.license_activations is 'Ikatan device client ke lisensi';
 comment on table public.license_orders is 'Riwayat checkout dan pembayaran lisensi online';
+comment on table public.license_settings is 'Pengaturan runtime checkout lisensi yang dapat diubah superadmin.';

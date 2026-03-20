@@ -1,6 +1,7 @@
-import { getLicenseConfig, getMidtransConfig } from '../../lib/config.js';
+import { getMidtransConfig } from '../../lib/config.js';
 import { requireAdmin } from '../../lib/auth.js';
 import { formatCurrency, methodNotAllowed, sendJson } from '../../lib/http.js';
+import { getResolvedLicenseConfig } from '../../lib/license-settings.js';
 import { getDashboardSnapshot } from '../../lib/license-store.js';
 
 export default async function handler(req, res) {
@@ -12,7 +13,7 @@ export default async function handler(req, res) {
     const admin = await requireAdmin(req);
     const limit = Math.max(5, Math.min(50, Number(req.query.limit || 12)));
     const snapshot = await getDashboardSnapshot(req, limit);
-    const config = getLicenseConfig(req);
+    const config = await getResolvedLicenseConfig(req);
     const midtrans = getMidtransConfig();
 
     return sendJson(res, 200, {
@@ -23,6 +24,8 @@ export default async function handler(req, res) {
         price: config.price,
         currency: config.currency,
         priceLabel: formatCurrency(config.price, config.currency),
+        priceSource: config.priceSource,
+        priceUpdatedAt: config.priceUpdatedAt,
         activationLimit: config.activationLimit,
         publicBaseUrl: config.publicBaseUrl,
         checkoutPageUrl: `${config.publicBaseUrl}/checkout`,

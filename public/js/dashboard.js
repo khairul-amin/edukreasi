@@ -2,6 +2,8 @@ import { getBrowserSupabase } from './supabase-browser.js';
 
 const els = {
   heroSubtitle: document.getElementById('heroSubtitle'),
+  dashboardHeader: document.getElementById('dashboardHeader'),
+  dashboardContent: document.getElementById('dashboardContent'),
   updatedAtLabel: document.getElementById('updatedAtLabel'),
   userIdentity: document.getElementById('userIdentity'),
   refreshBtn: document.getElementById('refreshBtn'),
@@ -12,6 +14,10 @@ const els = {
   publicConfigMeta: document.getElementById('publicConfigMeta'),
   setupGrid: document.getElementById('setupGrid'),
   metricsGrid: document.getElementById('metricsGrid'),
+  licenseConfigForm: document.getElementById('licenseConfigForm'),
+  checkoutPriceInput: document.getElementById('checkoutPriceInput'),
+  saveLicenseConfigBtn: document.getElementById('saveLicenseConfigBtn'),
+  licenseConfigMeta: document.getElementById('licenseConfigMeta'),
   builderSchoolName: document.getElementById('builderSchoolName'),
   builderNpsn: document.getElementById('builderNpsn'),
   builderDeviceId: document.getElementById('builderDeviceId'),
@@ -288,7 +294,9 @@ function renderPublicMeta() {
     {
       label: 'Harga Checkout',
       value: config.priceLabel || formatCurrency(config.price, config.currency),
-      detail: 'Nominal default untuk checkout online',
+      detail: config.priceSource === 'database'
+        ? 'Nominal aktif dikelola dari dashboard admin'
+        : 'Nominal aktif masih memakai fallback env server',
       tone: 'border-white/10 bg-white/5 text-white'
     },
     {
@@ -322,6 +330,21 @@ function renderPublicMeta() {
       <p class="mt-2 text-sm leading-6 opacity-85">${escapeHtml(item.detail)}</p>
     </article>
   `).join('');
+}
+
+function renderLicenseConfigPanel(config) {
+  if (!config || !els.checkoutPriceInput || !els.licenseConfigMeta) return;
+
+  els.checkoutPriceInput.value = Number(config.price || 0) > 0 ? String(Number(config.price || 0)) : '';
+
+  const sourceLabel = config.priceSource === 'database'
+    ? 'database admin'
+    : 'env server';
+  const updatedLabel = config.priceUpdatedAt
+    ? `Terakhir diperbarui ${formatDate(config.priceUpdatedAt)} (${formatRelative(config.priceUpdatedAt)}).`
+    : 'Belum pernah disimpan dari dashboard admin.';
+
+  els.licenseConfigMeta.textContent = `Harga checkout aktif: ${config.priceLabel || formatCurrency(config.price, config.currency)}. Sumber: ${sourceLabel}. ${updatedLabel}`;
 }
 
 function renderSetupGrid(config) {
@@ -725,6 +748,39 @@ async function handleIssueLicense(event) {
   }
 }
 
+async function handleLicenseConfigSubmit(event) {
+  event.preventDefault();
+
+  const price = Number(els.checkoutPriceInput?.value || 0);
+  if (!Number.isFinite(price) || price <= 0) {
+    showFlash('Harga checkout harus lebih dari 0.', 'error');
+    return;
+  }
+
+  const submitButton = els.saveLicenseConfigBtn;
+  const originalLabel = submitButton.textContent;
+  submitButton.disabled = true;
+  submitButton.textContent = 'Menyimpan...';
+
+  try {
+    const result = await apiFetch('/api/admin/license-config', {
+      method: 'PUT',
+      body: JSON.stringify({ price })
+    });
+
+    await loadPublicConfig();
+    renderPublicMeta();
+    buildCheckoutPreview();
+    await loadAdminDashboard();
+    showFlash(result.message || 'Harga checkout berhasil diperbarui.', 'success');
+  } catch (error) {
+    showFlash(error.message || 'Harga checkout gagal diperbarui.', 'error');
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = originalLabel;
+  }
+}
+
 async function loadAdminDashboard() {
   const data = await apiFetch('/api/admin/dashboard?limit=12');
   state.adminData = data;
@@ -739,15 +795,26 @@ async function loadAdminDashboard() {
   renderSetupGrid(data.config);
   renderMetricCards(data.metrics, data.config.currency);
   renderSystemInfo(data.config);
+  renderLicenseConfigPanel(data.config);
   renderLicenseTable(data.licenses || []);
   renderOrderTable(data.orders || [], data.config.currency);
   renderActivationTable(data.activations || []);
 }
 
 function showAccessDenied(message) {
+  if (els.dashboardHeader) {
+    els.dashboardHeader.classList.add('hidden');
+  }
+  if (els.dashboardContent) {
+    els.dashboardContent.classList.add('hidden');
+  }
+  if (els.flash) {
+    els.flash.innerHTML = '';
+  }
   els.accessDenied.classList.remove('hidden');
+  els.accessDenied.classList.add('flex');
   els.accessDenied.innerHTML = `
-    <div class="rounded-[2rem] border border-rose-400/20 bg-rose-500/10 p-8 text-rose-100">
+    <div class="w-full rounded-[2rem] border border-rose-400/20 bg-rose-500/10 p-8 text-rose-100 shadow-2xl shadow-[#07131b]/40 backdrop-blur-xl lg:p-10">
       <p class="text-xs uppercase tracking-[0.3em] text-rose-200/80">Akses Dibatasi</p>
       <h2 class="mt-3 font-display text-3xl font-bold text-white">${escapeHtml(message)}</h2>
       <p class="mt-4 max-w-2xl text-sm leading-6 text-rose-100/80">Pastikan akun Google ini sudah ada di tabel users dan role-nya superadmin. Setelah itu login ulang ke dashboard admin.</p>
@@ -778,14 +845,6 @@ async function init() {
   state.session = session;
 
   try {
-    await loadPublicConfig();
-    renderPublicMeta();
-    buildCheckoutPreview();
-  } catch (error) {
-    showFlash(error.message, 'error');
-  }
-
-  try {
     await loadAdminDashboard();
   } catch (error) {
     if (error instanceof ApiError && [401, 403].includes(error.status)) {
@@ -794,8 +853,17 @@ async function init() {
     }
     throw error;
   }
+
+  try {
+    await loadPublicConfig();
+    renderPublicMeta();
+    buildCheckoutPreview();
+  } catch (error) {
+    showFlash(error.message, 'error');
+  }
 }
 els.issueForm?.addEventListener('submit', handleIssueLicense);
+els.licenseConfigForm?.addEventListener('submit', handleLicenseConfigSubmit);
 
 els.checkoutBuilderForm?.addEventListener('input', () => {
   buildCheckoutPreview();

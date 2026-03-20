@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { getLicenseConfig } from '../lib/config.js';
+import { getResolvedLicenseConfig } from '../lib/license-settings.js';
 import { createServiceClient } from '../lib/supabase.js';
 import { createHttpError, methodNotAllowed, readJsonBody, sendJson } from '../lib/http.js';
 import { buildCheckoutUrl, createMidtransTransaction, createOrder, updateOrder } from '../lib/license-store.js';
@@ -11,12 +11,12 @@ export default async function handler(req, res) {
 
   try {
     const body = await readJsonBody(req);
-    const { price, currency, publicBaseUrl } = getLicenseConfig(req);
+    const { price, currency, publicBaseUrl } = await getResolvedLicenseConfig(req);
     const npsn = String(body.npsn || req.query.npsn || '').trim();
     const deviceId = String(body.device_id || req.query.device_id || '').trim();
     const schoolName = String(body.school_name || '').trim();
     const simulation = String(body.sim || req.query.sim || '').trim() === '1';
-    const amount = Number(body.amount || price);
+    const amount = Number(price);
 
     if (!npsn) throw createHttpError(400, 'NPSN wajib diisi.');
     if (!deviceId) throw createHttpError(400, 'Device ID wajib diisi.');
