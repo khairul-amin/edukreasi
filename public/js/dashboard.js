@@ -337,21 +337,14 @@ function renderPublicMeta() {
 }
 
 function renderLicenseConfigPanel(config) {
-  if (!config || !els.checkoutPriceInput || !els.licenseConfigMeta) return;
+  if (!config || !els.checkoutPriceInput) return;
 
   els.checkoutPriceInput.value = Number(config.price || 0) > 0 ? String(Number(config.price || 0)) : '';
-
-  const sourceLabel = config.priceSource === 'database'
-    ? 'database admin'
-    : 'env server';
-  const updatedLabel = config.priceUpdatedAt
-    ? `Terakhir diperbarui ${formatDate(config.priceUpdatedAt)} (${formatRelative(config.priceUpdatedAt)}).`
-    : 'Belum pernah disimpan dari dashboard admin.';
-
-  els.licenseConfigMeta.textContent = `Harga checkout aktif: ${config.priceLabel || formatCurrency(config.price, config.currency)}. Sumber: ${sourceLabel}. ${updatedLabel}`;
 }
 
 function renderSetupGrid(config) {
+  if (!els.setupGrid) return;
+
   const paymentPopupReady = Boolean(state.publicConfig?.paymentEnabled);
   const items = [
     {
@@ -402,6 +395,8 @@ function renderSetupGrid(config) {
 }
 
 function renderMetricCards(metrics, currency) {
+  if (!els.metricsGrid) return;
+
   const cards = [
     {
       label: 'Total Lisensi',
@@ -439,6 +434,8 @@ function renderMetricCards(metrics, currency) {
 }
 
 function renderSystemInfo(config) {
+  if (!els.systemInfo) return;
+
   const items = [
     {
       label: 'Checkout Publik',
