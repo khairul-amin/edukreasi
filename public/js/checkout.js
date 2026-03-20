@@ -25,6 +25,10 @@ function paymentModeLabel(mode) {
   return String(mode || '').toLowerCase() === 'production' ? 'production' : 'sandbox';
 }
 
+function isValidNpsn(value) {
+  return /^[0-9]{8}$/.test(String(value || '').trim());
+}
+
 function redirectToComplete(orderId) {
   if (!orderId) return;
   const url = new URL('/checkout/complete', window.location.origin);
@@ -133,6 +137,10 @@ checkoutForm?.addEventListener('submit', async (event) => {
 
     if (!body.npsn || !body.device_id) {
       throw new Error('NPSN dan Device ID wajib diisi.');
+    }
+
+    if (!isValidNpsn(body.npsn)) {
+      throw new Error('NPSN harus terdiri dari 8 digit angka.');
     }
 
     if (!checkoutState.config) {

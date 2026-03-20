@@ -269,6 +269,10 @@ function paymentModeLabel(mode) {
   return String(mode || '').toLowerCase() === 'production' ? 'Production' : 'Sandbox';
 }
 
+function isValidNpsn(value) {
+  return /^[0-9]{8}$/.test(String(value || '').trim());
+}
+
 function buildCheckoutPreview() {
   const baseUrl = state.publicConfig?.checkoutPageUrl || `${window.location.origin}/checkout`;
   const params = new URLSearchParams();
@@ -811,6 +815,11 @@ async function handleIssueLicense(event) {
     return;
   }
 
+  if (!isValidNpsn(payload.npsn)) {
+    showFlash('NPSN harus terdiri dari 8 digit angka.', 'error');
+    return;
+  }
+
   const submitButton = els.issueForm.querySelector('button[type="submit"]');
   submitButton.disabled = true;
   submitButton.textContent = 'Menerbitkan...';
@@ -868,6 +877,11 @@ async function handleOpenCheckout() {
   const payload = buildCheckoutPayload();
   if (!payload.npsn || !payload.device_id) {
     showFlash('NPSN dan Device ID wajib diisi sebelum membuka pembayaran.', 'error');
+    return;
+  }
+
+  if (!isValidNpsn(payload.npsn)) {
+    showFlash('NPSN harus terdiri dari 8 digit angka.', 'error');
     return;
   }
 
