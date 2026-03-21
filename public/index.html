@@ -87,7 +87,7 @@
   <section id="download" class="py-20 text-center">
     <h3 class="text-3xl font-bold text-gray-800">Unduh Aplikasi</h3>
     <p class="mt-4 text-gray-600 max-w-xl mx-auto">
-      Exam Edu Kreasi tersedia untuk Android. Silakan pilih aplikasi sesuai peran Anda.
+      Exam Edu Kreasi tersedia untuk Android dan Windows. Silakan pilih aplikasi sesuai peran Anda.
     </p>
     <div class="mt-10 grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
       <div class="p-6 bg-white shadow-md rounded-2xl">
@@ -95,18 +95,17 @@
         <p class="text-gray-600 text-sm">
           Aplikasi Android untuk siswa mengikuti ujian dengan keamanan penuh.
         </p>
-        <a href="https://github.com/khairul-amin/edukreasi/releases/download/exam/EXAM.EDUKREASI-V.3.6.5.apk" download
+        <a id="downloadStudentApk" href="https://github.com/khairul-amin/edukreasi/releases/download/exam/EXAM.EDUKREASI-V.3.6.5.apk" download
            class="block mt-4 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700">
           Unduh untuk Siswa
         </a>
       </div>
       <div class="p-6 bg-white shadow-md rounded-2xl">
-        <h4 class="text-xl font-semibold text-gray-800 mb-2">Exam Edu Kreasi Pengawas</h4>
+        <h4 class="text-xl font-semibold text-gray-800 mb-2">Exam Edu Kreasi Proktor/Admin</h4>
         <p class="text-gray-600 text-sm">
-          Aplikasi Android untuk pengawas membagikan token masuk ujian.  
-          Token reset otomatis agar siswa tidak bisa keluar-masuk sembarangan.
+          Aplikasi Windows untuk proktor/admin membagikan token masuk ujian dan membantu monitoring pelaksanaan ujian.
         </p>
-        <a href="#" class="block mt-4 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700">Hubungi Admin</a>
+        <a id="downloadAdminExe" href="#" download class="block mt-4 bg-green-600 text-white px-6 py-3 rounded-lg opacity-60 pointer-events-none">Unduh untuk Proktor/Admin</a>
       </div>
     </div>
   </section>
@@ -194,6 +193,32 @@
         icon.textContent = content.classList.contains('hidden') ? '+' : '–';
       });
     });
+
+    async function syncDownloadLinks() {
+      try {
+        const response = await fetch('/api/app-downloads', { cache: 'no-store' });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) return;
+
+        const studentUrl = data?.downloads?.student_apk?.url;
+        const adminUrl = data?.downloads?.admin_exe?.url;
+
+        const studentLink = document.getElementById('downloadStudentApk');
+        if (studentLink && studentUrl) {
+          studentLink.href = studentUrl;
+        }
+
+        const adminLink = document.getElementById('downloadAdminExe');
+        if (adminLink && adminUrl) {
+          adminLink.href = adminUrl;
+          adminLink.classList.remove('opacity-60', 'pointer-events-none');
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    syncDownloadLinks();
   </script>
 </body>
 </html>

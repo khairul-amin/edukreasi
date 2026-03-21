@@ -18,6 +18,14 @@ const els = {
   checkoutPriceInput: document.getElementById('checkoutPriceInput'),
   saveLicenseConfigBtn: document.getElementById('saveLicenseConfigBtn'),
   licenseConfigMeta: document.getElementById('licenseConfigMeta'),
+  studentApkPublicUrl: document.getElementById('studentApkPublicUrl'),
+  studentApkUploadForm: document.getElementById('studentApkUploadForm'),
+  studentApkFile: document.getElementById('studentApkFile'),
+  studentApkUploadBtn: document.getElementById('studentApkUploadBtn'),
+  adminExePublicUrl: document.getElementById('adminExePublicUrl'),
+  adminExeUploadForm: document.getElementById('adminExeUploadForm'),
+  adminExeFile: document.getElementById('adminExeFile'),
+  adminExeUploadBtn: document.getElementById('adminExeUploadBtn'),
   builderSchoolName: document.getElementById('builderSchoolName'),
   builderNpsn: document.getElementById('builderNpsn'),
   builderDeviceId: document.getElementById('builderDeviceId'),
@@ -426,6 +434,104 @@ function renderLicenseConfigPanel(config) {
   if (!config || !els.checkoutPriceInput) return;
 
   els.checkoutPriceInput.value = Number(config.price || 0) > 0 ? String(Number(config.price || 0)) : '';
+}
+
+async function loadAppDownloads() {
+  const response = await fetch('/api/app-downloads', { cache: 'no-store' });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.success) {
+    throw new Error(data?.message || 'Gagal memuat link download aplikasi.');
+  }
+  return data.downloads || {};
+}
+
+function renderAppDownloads(downloads) {
+  const student = downloads?.student_apk;
+  if (els.studentApkPublicUrl) {
+    if (student?.url) {
+      els.studentApkPublicUrl.href = student.url;
+      els.studentApkPublicUrl.textContent = student.url;
+    } else {
+      els.studentApkPublicUrl.href = '#';
+      els.studentApkPublicUrl.textContent = 'Belum ada file APK. Silakan upload.';
+    }
+  }
+
+  const admin = downloads?.admin_exe;
+  if (els.adminExePublicUrl) {
+    if (admin?.url) {
+      els.adminExePublicUrl.href = admin.url;
+      els.adminExePublicUrl.textContent = admin.url;
+    } else {
+      els.adminExePublicUrl.href = '#';
+      els.adminExePublicUrl.textContent = 'Belum ada file EXE. Silakan upload.';
+    }
+  }
+}
+
+function resolveUploadContentType(file, fallback) {
+  const value = String(file?.type || '').trim();
+  return value || fallback || 'application/octet-stream';
+}
+
+async function handleAppUpload(platform, fileInput, button, defaultContentType) {
+  const file = fileInput?.files?.[0];
+  if (!file) {
+    showFlash('Silakan pilih file terlebih dahulu.', 'error');
+    return;
+  }
+
+  const submitBtn = button;
+  const originalLabel = submitBtn?.textContent || 'Upload';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Mengunggah...';
+  }
+
+  try {
+    const uploadConfig = await apiFetch('/api/admin/app-downloads/upload-url', {
+      method: 'POST',
+      body: JSON.stringify({
+        platform,
+        fileName: file.name
+      })
+    });
+
+    const bucket = uploadConfig.bucket;
+    const path = uploadConfig.path;
+    const token = uploadConfig.token;
+    const contentType = resolveUploadContentType(file, defaultContentType || uploadConfig.defaultContentType);
+
+    const { error } = await state.supabase.storage
+      .from(bucket)
+      .uploadToSignedUrl(path, token, file, {
+        contentType,
+        cacheControl: '0'
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    showFlash('Upload berhasil. Link download publik sudah siap dipakai.', 'success');
+    if (fileInput) {
+      fileInput.value = '';
+    }
+
+    try {
+      const downloads = await loadAppDownloads();
+      renderAppDownloads(downloads);
+    } catch {
+      // ignore
+    }
+  } catch (error) {
+    showFlash(error.message || 'Upload file gagal diproses.', 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalLabel;
+    }
+  }
 }
 
 function renderSetupGrid(config) {
@@ -1025,9 +1131,26 @@ async function init() {
   } catch (error) {
     showFlash(error.message, 'error');
   }
+
+  try {
+    const downloads = await loadAppDownloads();
+    renderAppDownloads(downloads);
+  } catch (error) {
+    showFlash(error.message || 'Link download aplikasi belum siap.', 'info');
+  }
 }
 els.issueForm?.addEventListener('submit', handleIssueLicense);
 els.licenseConfigForm?.addEventListener('submit', handleLicenseConfigSubmit);
+
+els.studentApkUploadForm?.addEventListener('submit', (event) => {
+  event.preventDefault();
+  handleAppUpload('student_apk', els.studentApkFile, els.studentApkUploadBtn, 'application/vnd.android.package-archive');
+});
+
+els.adminExeUploadForm?.addEventListener('submit', (event) => {
+  event.preventDefault();
+  handleAppUpload('admin_exe', els.adminExeFile, els.adminExeUploadBtn, 'application/octet-stream');
+});
 
 els.checkoutBuilderForm?.addEventListener('input', () => {
   buildCheckoutPreview();
