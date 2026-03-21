@@ -1,8 +1,53 @@
 ﻿import { createServiceClient } from '../../lib/supabase.js';
-import { createHttpError, methodNotAllowed, sendJson } from '../../lib/http.js';
-import { ensureActivation, ensureLicense, getOrder, issueToken, updateOrder } from '../../lib/license-store.js';
+import { createHttpError, methodNotAllowed, readJsonBody, sendJson } from '../../lib/http.js';
+import {
+  deactivateActivationByDevice,
+  deactivateActivationById,
+  ensureActivation,
+  ensureLicense,
+  getOrder,
+  issueToken,
+  updateOrder
+} from '../../lib/license-store.js';
 
 export default async function handler(req, res) {
+  // `vercel.json` rewrites `/api/license/deactivate` to this handler with `?deactivate=1`.
+  // We keep the old URL working while staying under the Vercel Hobby function count limit.
+  const deactivateRequested = String(req.query?.deactivate || '') === '1';
+  if (deactivateRequested) {
+    if (req.method !== 'POST') {
+      return methodNotAllowed(res, ['POST']);
+    }
+
+    try {
+      const body = await readJsonBody(req);
+      const activationId = String(body.activation_id || '').trim();
+      const licenseId = String(body.license_id || '').trim();
+      const deviceId = String(body.device_id || '').trim();
+
+      if (!activationId && !(licenseId && deviceId)) {
+        throw createHttpError(400, 'activation_id atau license_id + device_id wajib diisi.');
+      }
+
+      const supabase = createServiceClient();
+      if (activationId) {
+        await deactivateActivationById(supabase, activationId);
+      } else {
+        await deactivateActivationByDevice(supabase, licenseId, deviceId);
+      }
+
+      return sendJson(res, 200, {
+        success: true,
+        message: 'Aktivasi berhasil dinonaktifkan.'
+      });
+    } catch (error) {
+      return sendJson(res, error.statusCode || 500, {
+        success: false,
+        message: error.message || 'Gagal menonaktifkan aktivasi.'
+      });
+    }
+  }
+
   if (req.method !== 'GET') {
     return methodNotAllowed(res, ['GET']);
   }
