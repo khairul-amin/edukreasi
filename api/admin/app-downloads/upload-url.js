@@ -1,34 +1,9 @@
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { requireAdmin } from '../../../lib/auth.js';
-import { createHttpError, methodNotAllowed, readJsonBody, sendJson } from '../../../lib/http.js';
-import { createServiceClient } from '../../../lib/supabase.js';
 import { getAppReleaseConfig } from '../../../lib/app-releases.js';
-
-async function ensurePublicBucket(supabase, bucketName) {
-  const { data, error } = await supabase.storage.getBucket(bucketName);
-
-  if (error) {
-    const { error: createError } = await supabase.storage.createBucket(bucketName, { public: true });
-    if (createError) {
-      throw createHttpError(
-        500,
-        `Gagal membuat bucket Supabase Storage "${bucketName}". Buat manual di Storage dan set menjadi public.`,
-        { cause: createError }
-      );
-    }
-    return;
-  }
-
-  if (data && data.public !== true) {
-    const { error: updateError } = await supabase.storage.updateBucket(bucketName, { public: true });
-    if (updateError) {
-      throw createHttpError(
-        500,
-        `Bucket "${bucketName}" ada tetapi gagal diubah menjadi public. Silakan ubah manual di Supabase Storage.`,
-        { cause: updateError }
-      );
-    }
-  }
-}
+import { createHttpError, methodNotAllowed, readJsonBody, sendJson } from '../../../lib/http.js';
+import { createR2Client } from '../../../lib/r2.js';
 
 function extname(value) {
   const name = String(value || '').trim();
@@ -57,6 +32,13 @@ function joinPath(dir, fileName) {
   return `${left}/${right}`;
 }
 
+function joinPublicUrl(baseUrl, path) {
+  const base = String(baseUrl || '').trim().replace(/\/+$/g, '');
+  const right = String(path || '').trim().replace(/^\/+/g, '');
+  if (!base || !right) return '';
+  return `${base}/${right}`;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return methodNotAllowed(res, ['POST']);
@@ -67,6 +49,7 @@ export default async function handler(req, res) {
     const body = await readJsonBody(req);
 
     const platform = String(body.platform || '').trim();
+    const requestedContentType = String(body.contentType || '').trim();
     const config = getAppReleaseConfig();
     const item = config.items[platform];
 
@@ -87,22 +70,25 @@ export default async function handler(req, res) {
     }
 
     const bucketName = config.bucket;
-    const supabase = createServiceClient();
-    await ensurePublicBucket(supabase, bucketName);
-
     const destinationPath = item.mode === 'fixed'
       ? item.fixedPath
       : joinPath(item.dir, incomingName);
 
-    const { data, error } = await supabase.storage
-      .from(bucketName)
-      .createSignedUploadUrl(destinationPath, { upsert: true });
+    const contentType = requestedContentType || item.defaultContentType || 'application/octet-stream';
+    const r2 = createR2Client();
+    const expiresIn = 60 * 15; // 15 minutes
 
-    if (error) {
-      throw createHttpError(500, 'Gagal membuat signed upload URL.', { cause: error });
-    }
+    const signedUrl = await getSignedUrl(
+      r2,
+      new PutObjectCommand({
+        Bucket: bucketName,
+        Key: destinationPath,
+        ContentType: contentType
+      }),
+      { expiresIn }
+    );
 
-    const { data: publicData } = supabase.storage.from(bucketName).getPublicUrl(destinationPath);
+    const publicUrl = joinPublicUrl(config.publicBaseUrl, destinationPath);
 
     return sendJson(res, 200, {
       success: true,
@@ -110,9 +96,14 @@ export default async function handler(req, res) {
       label: item.label,
       bucket: bucketName,
       path: destinationPath,
-      token: data.token,
-      signedUrl: data.signedUrl,
-      publicUrl: publicData?.publicUrl || '',
+      key: destinationPath,
+      method: 'PUT',
+      headers: {
+        'content-type': contentType
+      },
+      expiresIn,
+      signedUrl,
+      publicUrl,
       defaultContentType: item.defaultContentType
     });
   } catch (error) {

@@ -475,7 +475,7 @@ function resolveUploadContentType(file, fallback) {
   return value || fallback || 'application/octet-stream';
 }
 
-function uploadToSignedUrl(signedUrl, file, { cacheControl = '0', onProgress } = {}) {
+function uploadToSignedUrl(signedUrl, file, { method = 'PUT', headers = {}, onProgress } = {}) {
   return new Promise((resolve, reject) => {
     if (!signedUrl) {
       reject(new Error('Signed URL tidak tersedia. Silakan refresh dan coba lagi.'));
@@ -483,11 +483,18 @@ function uploadToSignedUrl(signedUrl, file, { cacheControl = '0', onProgress } =
     }
 
     const xhr = new XMLHttpRequest();
-    xhr.open('PUT', signedUrl, true);
+    xhr.open(method, signedUrl, true);
 
-    // Signed upload URL does not require Supabase auth headers; keep headers minimal
-    // to avoid CORS issues on some configurations.
-    xhr.setRequestHeader('x-upsert', 'true');
+    // Signed upload URL does not require auth headers.
+    Object.entries(headers || {}).forEach(([key, value]) => {
+      if (!key) return;
+      if (value === undefined || value === null || value === '') return;
+      try {
+        xhr.setRequestHeader(key, String(value));
+      } catch {
+        // ignore invalid headers
+      }
+    });
 
     xhr.upload.onprogress = (event) => {
       if (!onProgress) return;
@@ -496,7 +503,7 @@ function uploadToSignedUrl(signedUrl, file, { cacheControl = '0', onProgress } =
     };
 
     xhr.onerror = () => {
-      reject(new Error('Upload gagal (koneksi/CORS). Pastikan CORS Storage mengizinkan domain kamu.'));
+      reject(new Error('Upload gagal (koneksi/CORS). Pastikan CORS R2 mengizinkan domain kamu.'));
     };
 
     xhr.onabort = () => {
@@ -507,18 +514,16 @@ function uploadToSignedUrl(signedUrl, file, { cacheControl = '0', onProgress } =
       const ok = xhr.status >= 200 && xhr.status < 300;
       if (!ok) {
         const hint = xhr.status ? ` (HTTP ${xhr.status})` : '';
-        reject(new Error(`Upload gagal${hint}.`));
+        const body = String(xhr.responseText || '').trim();
+        const detail = body ? ` ${body.slice(0, 300)}` : '';
+        reject(new Error(`Upload gagal${hint}.${detail}`));
         return;
       }
 
-      // Supabase returns JSON on success, but we don't require parsing it for UI.
       resolve(true);
     };
 
-    const body = new FormData();
-    body.append('cacheControl', String(cacheControl));
-    body.append('', file);
-    xhr.send(body);
+    xhr.send(file);
   });
 }
 
@@ -537,20 +542,19 @@ async function handleAppUpload(platform, fileInput, button, defaultContentType) 
   }
 
   try {
+    const contentType = resolveUploadContentType(file, defaultContentType);
     const uploadConfig = await apiFetch('/api/admin/app-downloads/upload-url', {
       method: 'POST',
       body: JSON.stringify({
         platform,
-        fileName: file.name
+        fileName: file.name,
+        contentType
       })
     });
 
-    const bucket = uploadConfig.bucket;
-    const path = uploadConfig.path;
-    resolveUploadContentType(file, defaultContentType || uploadConfig.defaultContentType);
-
     await uploadToSignedUrl(uploadConfig.signedUrl, file, {
-      cacheControl: '0',
+      method: uploadConfig.method || 'PUT',
+      headers: uploadConfig.headers || { 'content-type': contentType },
       onProgress: (loaded, total) => {
         if (!submitBtn) return;
         const pct = total > 0 ? Math.min(100, Math.round((loaded / total) * 100)) : 0;
@@ -1292,8 +1296,6 @@ init().catch((error) => {
   console.error(error);
   showFlash(error.message || 'Dashboard lisensi gagal dimuat.', 'error');
 });
-
-
 
 
 

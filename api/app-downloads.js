@@ -1,19 +1,31 @@
+import { HeadObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { getAppReleaseConfig } from '../lib/app-releases.js';
 import { methodNotAllowed, sendJson } from '../lib/http.js';
-import { createServiceClient } from '../lib/supabase.js';
+import { createR2Client } from '../lib/r2.js';
 
-function joinPath(dir, fileName) {
-  const left = String(dir || '').trim().replace(/^\/+/g, '').replace(/\/+$/g, '');
-  const right = String(fileName || '').trim().replace(/^\/+/g, '');
-  if (!left) return right;
-  if (!right) return left;
-  return `${left}/${right}`;
+function joinPublicUrl(baseUrl, path) {
+  const base = String(baseUrl || '').trim().replace(/\/+$/g, '');
+  const right = String(path || '').trim().replace(/^\/+/g, '');
+  if (!base || !right) return '';
+  return `${base}/${right}`;
 }
 
-function timestampOf(entry) {
-  const raw = entry?.updated_at || entry?.created_at || '';
-  const value = Date.parse(String(raw));
-  return Number.isFinite(value) ? value : 0;
+function ensureTrailingSlash(value) {
+  const clean = String(value || '').trim().replace(/^\/+/g, '').replace(/\/+$/g, '');
+  return clean ? `${clean}/` : '';
+}
+
+function fileNameOfKey(key) {
+  const raw = String(key || '').replace(/\\/g, '/');
+  const parts = raw.split('/').filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : '';
+}
+
+function toIsoOrNull(value) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  const time = date.getTime();
+  return Number.isFinite(time) ? date.toISOString() : null;
 }
 
 export default async function handler(req, res) {
@@ -22,9 +34,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    const supabase = createServiceClient();
     const config = getAppReleaseConfig();
     const bucket = config.bucket;
+    const publicBaseUrl = config.publicBaseUrl;
+    const r2 = createR2Client();
 
     const downloads = {};
 
@@ -32,34 +45,20 @@ export default async function handler(req, res) {
       if (item.mode === 'fixed') {
         const fixedPath = item.fixedPath;
         const dir = item.dir || '';
-        const searchName = fixedPath.split('/').filter(Boolean).slice(-1)[0] || '';
+        const fileName = fileNameOfKey(fixedPath);
+        let available = false;
+        let updatedAt = null;
 
-        const { data, error } = await supabase.storage
-          .from(bucket)
-          .list(dir, { limit: 100, offset: 0, search: searchName });
-
-        if (error) {
-          downloads[key] = {
-            id: item.id,
-            label: item.label,
-            bucket,
-            mode: item.mode,
-            dir,
-            fileName: searchName,
-            path: fixedPath,
-            url: '',
-            available: false,
-            updatedAt: null
-          };
-          return;
+        try {
+          const head = await r2.send(new HeadObjectCommand({ Bucket: bucket, Key: fixedPath }));
+          available = true;
+          updatedAt = toIsoOrNull(head?.LastModified);
+        } catch (error) {
+          const status = error?.$metadata?.httpStatusCode || error?.statusCode;
+          if (status && Number(status) !== 404) {
+            throw error;
+          }
         }
-
-        const match = (data || [])
-          .filter((entry) => entry?.id)
-          .find((entry) => entry?.name === searchName);
-
-        const fullPath = fixedPath;
-        const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(fullPath);
 
         downloads[key] = {
           id: item.id,
@@ -67,22 +66,28 @@ export default async function handler(req, res) {
           bucket,
           mode: item.mode,
           dir,
-          fileName: searchName,
-          path: fullPath,
-          url: match ? (publicData?.publicUrl || '') : '',
-          available: Boolean(match),
-          updatedAt: match?.updated_at || match?.created_at || null
+          fileName,
+          path: fixedPath,
+          url: available ? joinPublicUrl(publicBaseUrl, fixedPath) : '',
+          available,
+          updatedAt
         };
 
         return;
       }
 
       const dir = item.dir || '';
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .list(dir, { limit: 100, offset: 0 });
+      const prefix = ensureTrailingSlash(dir);
 
-      if (error) {
+      let objects = [];
+      try {
+        const result = await r2.send(new ListObjectsV2Command({
+          Bucket: bucket,
+          Prefix: prefix,
+          MaxKeys: 1000
+        }));
+        objects = result?.Contents || [];
+      } catch {
         downloads[key] = {
           id: item.id,
           label: item.label,
@@ -98,13 +103,16 @@ export default async function handler(req, res) {
         return;
       }
 
-      const files = (data || [])
-        .filter((entry) => entry?.id)
-        .filter((entry) => String(entry?.name || '').toLowerCase().endsWith(item.expectedExt));
+      const matches = objects
+        .filter((entry) => entry?.Key)
+        .filter((entry) => String(entry.Key || '').toLowerCase().endsWith(item.expectedExt))
+        .sort((a, b) => {
+          const left = new Date(a?.LastModified || 0).getTime();
+          const right = new Date(b?.LastModified || 0).getTime();
+          return right - left;
+        });
 
-      files.sort((a, b) => timestampOf(b) - timestampOf(a));
-      const latest = files[0] || null;
-
+      const latest = matches[0] || null;
       if (!latest) {
         downloads[key] = {
           id: item.id,
@@ -121,9 +129,8 @@ export default async function handler(req, res) {
         return;
       }
 
-      const fileName = String(latest.name || '');
-      const fullPath = joinPath(dir, fileName);
-      const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(fullPath);
+      const fullPath = String(latest.Key || '');
+      const fileName = fileNameOfKey(fullPath);
 
       downloads[key] = {
         id: item.id,
@@ -133,15 +140,16 @@ export default async function handler(req, res) {
         dir,
         fileName,
         path: fullPath,
-        url: publicData?.publicUrl || '',
+        url: joinPublicUrl(publicBaseUrl, fullPath),
         available: true,
-        updatedAt: latest.updated_at || latest.created_at || null
+        updatedAt: toIsoOrNull(latest.LastModified)
       };
     }));
 
     return sendJson(res, 200, {
       success: true,
       bucket,
+      publicBaseUrl,
       downloads
     });
   } catch (error) {
