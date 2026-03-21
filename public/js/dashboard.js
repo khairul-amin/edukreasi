@@ -474,6 +474,52 @@ function resolveUploadContentType(file, fallback) {
   return value || fallback || 'application/octet-stream';
 }
 
+function uploadToSignedUrl(signedUrl, file, { contentType = '', onProgress } = {}) {
+  return new Promise((resolve, reject) => {
+    if (!signedUrl) {
+      reject(new Error('Signed URL tidak tersedia. Silakan refresh dan coba lagi.'));
+      return;
+    }
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', signedUrl, true);
+
+    // Signed upload URL does not require Supabase auth headers; keep headers minimal
+    // to avoid CORS issues on some configurations.
+    if (contentType) {
+      xhr.setRequestHeader('content-type', contentType);
+    }
+
+    xhr.upload.onprogress = (event) => {
+      if (!onProgress) return;
+      if (!event || !event.lengthComputable) return;
+      onProgress(event.loaded, event.total);
+    };
+
+    xhr.onerror = () => {
+      reject(new Error('Upload gagal (koneksi/CORS). Pastikan CORS Storage mengizinkan domain kamu.'));
+    };
+
+    xhr.onabort = () => {
+      reject(new Error('Upload dibatalkan.'));
+    };
+
+    xhr.onload = () => {
+      const ok = xhr.status >= 200 && xhr.status < 300;
+      if (!ok) {
+        const hint = xhr.status ? ` (HTTP ${xhr.status})` : '';
+        reject(new Error(`Upload gagal${hint}.`));
+        return;
+      }
+
+      // Supabase returns JSON on success, but we don't require parsing it for UI.
+      resolve(true);
+    };
+
+    xhr.send(file);
+  });
+}
+
 async function handleAppUpload(platform, fileInput, button, defaultContentType) {
   const file = fileInput?.files?.[0];
   if (!file) {
@@ -499,19 +545,16 @@ async function handleAppUpload(platform, fileInput, button, defaultContentType) 
 
     const bucket = uploadConfig.bucket;
     const path = uploadConfig.path;
-    const token = uploadConfig.token;
     const contentType = resolveUploadContentType(file, defaultContentType || uploadConfig.defaultContentType);
 
-    const { error } = await state.supabase.storage
-      .from(bucket)
-      .uploadToSignedUrl(path, token, file, {
-        contentType,
-        cacheControl: '0'
-      });
-
-    if (error) {
-      throw error;
-    }
+    await uploadToSignedUrl(uploadConfig.signedUrl, file, {
+      contentType,
+      onProgress: (loaded, total) => {
+        if (!submitBtn) return;
+        const pct = total > 0 ? Math.min(100, Math.round((loaded / total) * 100)) : 0;
+        submitBtn.textContent = `Mengunggah... ${pct}%`;
+      }
+    });
 
     showFlash('Upload berhasil. Link download publik sudah siap dipakai.', 'success');
     if (fileInput) {
