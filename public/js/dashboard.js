@@ -475,7 +475,7 @@ function resolveUploadContentType(file, fallback) {
   return value || fallback || 'application/octet-stream';
 }
 
-function uploadToSignedUrl(signedUrl, file, { contentType = '', onProgress } = {}) {
+function uploadToSignedUrl(signedUrl, file, { cacheControl = '0', onProgress } = {}) {
   return new Promise((resolve, reject) => {
     if (!signedUrl) {
       reject(new Error('Signed URL tidak tersedia. Silakan refresh dan coba lagi.'));
@@ -487,9 +487,7 @@ function uploadToSignedUrl(signedUrl, file, { contentType = '', onProgress } = {
 
     // Signed upload URL does not require Supabase auth headers; keep headers minimal
     // to avoid CORS issues on some configurations.
-    if (contentType) {
-      xhr.setRequestHeader('content-type', contentType);
-    }
+    xhr.setRequestHeader('x-upsert', 'true');
 
     xhr.upload.onprogress = (event) => {
       if (!onProgress) return;
@@ -517,7 +515,10 @@ function uploadToSignedUrl(signedUrl, file, { contentType = '', onProgress } = {
       resolve(true);
     };
 
-    xhr.send(file);
+    const body = new FormData();
+    body.append('cacheControl', String(cacheControl));
+    body.append('', file);
+    xhr.send(body);
   });
 }
 
@@ -546,10 +547,10 @@ async function handleAppUpload(platform, fileInput, button, defaultContentType) 
 
     const bucket = uploadConfig.bucket;
     const path = uploadConfig.path;
-    const contentType = resolveUploadContentType(file, defaultContentType || uploadConfig.defaultContentType);
+    resolveUploadContentType(file, defaultContentType || uploadConfig.defaultContentType);
 
     await uploadToSignedUrl(uploadConfig.signedUrl, file, {
-      contentType,
+      cacheControl: '0',
       onProgress: (loaded, total) => {
         if (!submitBtn) return;
         const pct = total > 0 ? Math.min(100, Math.round((loaded / total) * 100)) : 0;
@@ -1291,7 +1292,6 @@ init().catch((error) => {
   console.error(error);
   showFlash(error.message || 'Dashboard lisensi gagal dimuat.', 'error');
 });
-
 
 
 
