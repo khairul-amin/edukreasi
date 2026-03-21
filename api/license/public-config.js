@@ -1,10 +1,21 @@
-import { getMidtransConfig } from '../../lib/config.js';
-import { formatCurrency, methodNotAllowed, sendJson } from '../../lib/http.js';
+import { getLicenseConfig, getMidtransConfig } from '../../lib/config.js';
+import { formatCurrency, methodNotAllowed, sendJson, sendText } from '../../lib/http.js';
 import { getResolvedLicenseConfig } from '../../lib/license-settings.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return methodNotAllowed(res, ['GET']);
+  }
+
+  // `vercel.json` rewrites `/api/license/public-key` to this handler with `?publicKey=1`.
+  // We keep the old URL working while staying under the Vercel Hobby function count limit.
+  if (String(req.query?.publicKey || '') === '1') {
+    const { publicKey } = getLicenseConfig(req);
+    if (!publicKey) {
+      return sendText(res, 404, '');
+    }
+
+    return sendText(res, 200, publicKey, 'text/plain; charset=utf-8');
   }
 
   try {
