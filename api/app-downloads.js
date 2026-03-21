@@ -1,37 +1,19 @@
 import { getAppReleaseConfig } from '../lib/app-releases.js';
-import { requireEnv } from '../lib/config.js';
 import { methodNotAllowed, sendJson } from '../lib/http.js';
+import { createServiceClient } from '../lib/supabase.js';
 
-function encodePath(path) {
-  return String(path || '')
-    .split('/')
-    .filter(Boolean)
-    .map((part) => encodeURIComponent(part))
-    .join('/');
+function joinPath(dir, fileName) {
+  const left = String(dir || '').trim().replace(/^\/+/g, '').replace(/\/+$/g, '');
+  const right = String(fileName || '').trim().replace(/^\/+/g, '');
+  if (!left) return right;
+  if (!right) return left;
+  return `${left}/${right}`;
 }
 
-function buildPublicObjectUrl(supabaseUrl, bucket, path) {
-  const baseUrl = String(supabaseUrl || '').trim().replace(/\/+$/g, '');
-  const cleanBucket = String(bucket || '').trim().replace(/^\/+/g, '').replace(/\/+$/g, '');
-  const cleanPath = String(path || '').trim().replace(/^\/+/g, '');
-
-  return `${baseUrl}/storage/v1/object/public/${encodeURIComponent(cleanBucket)}/${encodePath(cleanPath)}`;
-}
-
-async function isPublicObjectAvailable(url) {
-  try {
-    const response = await fetch(url, { method: 'HEAD' });
-    if (response.status === 405) {
-      const probe = await fetch(url, {
-        method: 'GET',
-        headers: { Range: 'bytes=0-0' }
-      });
-      return probe.ok || probe.status === 206;
-    }
-    return response.ok;
-  } catch {
-    return false;
-  }
+function timestampOf(entry) {
+  const raw = entry?.updated_at || entry?.created_at || '';
+  const value = Date.parse(String(raw));
+  return Number.isFinite(value) ? value : 0;
 }
 
 export default async function handler(req, res) {
@@ -40,35 +22,122 @@ export default async function handler(req, res) {
   }
 
   try {
-    const supabaseUrl = requireEnv('SUPABASE_URL');
+    const supabase = createServiceClient();
     const config = getAppReleaseConfig();
     const bucket = config.bucket;
 
-    const downloads = Object.fromEntries(
-      Object.entries(config.items).map(([key, item]) => {
-        const url = buildPublicObjectUrl(supabaseUrl, bucket, item.path);
-        return [
-          key,
-          {
+    const downloads = {};
+
+    await Promise.all(Object.entries(config.items).map(async ([key, item]) => {
+      if (item.mode === 'fixed') {
+        const fixedPath = item.fixedPath;
+        const dir = item.dir || '';
+        const searchName = fixedPath.split('/').filter(Boolean).slice(-1)[0] || '';
+
+        const { data, error } = await supabase.storage
+          .from(bucket)
+          .list(dir, { limit: 100, offset: 0, search: searchName });
+
+        if (error) {
+          downloads[key] = {
             id: item.id,
             label: item.label,
             bucket,
-            path: item.path,
-            url
-          }
-        ];
-      })
-    );
-
-    await Promise.all(
-      Object.values(downloads).map(async (item) => {
-        const ok = await isPublicObjectAvailable(item.url);
-        item.available = ok;
-        if (!ok) {
-          item.url = '';
+            mode: item.mode,
+            dir,
+            fileName: searchName,
+            path: fixedPath,
+            url: '',
+            available: false,
+            updatedAt: null
+          };
+          return;
         }
-      })
-    );
+
+        const match = (data || [])
+          .filter((entry) => entry?.id)
+          .find((entry) => entry?.name === searchName);
+
+        const fullPath = fixedPath;
+        const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(fullPath);
+
+        downloads[key] = {
+          id: item.id,
+          label: item.label,
+          bucket,
+          mode: item.mode,
+          dir,
+          fileName: searchName,
+          path: fullPath,
+          url: match ? (publicData?.publicUrl || '') : '',
+          available: Boolean(match),
+          updatedAt: match?.updated_at || match?.created_at || null
+        };
+
+        return;
+      }
+
+      const dir = item.dir || '';
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .list(dir, { limit: 100, offset: 0 });
+
+      if (error) {
+        downloads[key] = {
+          id: item.id,
+          label: item.label,
+          bucket,
+          mode: item.mode,
+          dir,
+          fileName: '',
+          path: '',
+          url: '',
+          available: false,
+          updatedAt: null
+        };
+        return;
+      }
+
+      const files = (data || [])
+        .filter((entry) => entry?.id)
+        .filter((entry) => String(entry?.name || '').toLowerCase().endsWith(item.expectedExt));
+
+      files.sort((a, b) => timestampOf(b) - timestampOf(a));
+      const latest = files[0] || null;
+
+      if (!latest) {
+        downloads[key] = {
+          id: item.id,
+          label: item.label,
+          bucket,
+          mode: item.mode,
+          dir,
+          fileName: '',
+          path: '',
+          url: '',
+          available: false,
+          updatedAt: null
+        };
+        return;
+      }
+
+      const fileName = String(latest.name || '');
+      const fullPath = joinPath(dir, fileName);
+      const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(fullPath);
+
+      downloads[key] = {
+        id: item.id,
+        label: item.label,
+        bucket,
+        mode: item.mode,
+        dir,
+        fileName,
+        path: fullPath,
+        url: publicData?.publicUrl || '',
+        available: true,
+        updatedAt: latest.updated_at || latest.created_at || null
+      };
+    }));
 
     return sendJson(res, 200, {
       success: true,

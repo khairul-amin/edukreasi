@@ -37,6 +37,26 @@ function extname(value) {
   return name.slice(idx).toLowerCase();
 }
 
+function basename(value) {
+  const raw = String(value || '').trim().replace(/\\/g, '/');
+  const parts = raw.split('/').filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : '';
+}
+
+function sanitizeFileName(value) {
+  const name = basename(value).replace(/\0/g, '').trim();
+  if (!name || name === '.' || name === '..') return '';
+  return name.length > 180 ? name.slice(0, 180) : name;
+}
+
+function joinPath(dir, fileName) {
+  const left = String(dir || '').trim().replace(/^\/+/g, '').replace(/\/+$/g, '');
+  const right = String(fileName || '').trim().replace(/^\/+/g, '');
+  if (!left) return right;
+  if (!right) return left;
+  return `${left}/${right}`;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return methodNotAllowed(res, ['POST']);
@@ -54,10 +74,14 @@ export default async function handler(req, res) {
       throw createHttpError(400, 'Platform aplikasi tidak valid.');
     }
 
-    const incomingName = String(body.fileName || '').trim();
+    const incomingName = sanitizeFileName(body.fileName);
+    if (item.mode === 'dir' && !incomingName) {
+      throw createHttpError(400, 'Nama file belum tersedia. Silakan pilih file dan coba lagi.');
+    }
+
     if (incomingName) {
       const incomingExt = extname(incomingName);
-      if (incomingExt && incomingExt !== item.expectedExt) {
+      if (!incomingExt || incomingExt !== item.expectedExt) {
         throw createHttpError(400, `File harus berformat ${item.expectedExt}.`);
       }
     }
@@ -66,22 +90,26 @@ export default async function handler(req, res) {
     const supabase = createServiceClient();
     await ensurePublicBucket(supabase, bucketName);
 
+    const destinationPath = item.mode === 'fixed'
+      ? item.fixedPath
+      : joinPath(item.dir, incomingName);
+
     const { data, error } = await supabase.storage
       .from(bucketName)
-      .createSignedUploadUrl(item.path, { upsert: true });
+      .createSignedUploadUrl(destinationPath, { upsert: true });
 
     if (error) {
       throw createHttpError(500, 'Gagal membuat signed upload URL.', { cause: error });
     }
 
-    const { data: publicData } = supabase.storage.from(bucketName).getPublicUrl(item.path);
+    const { data: publicData } = supabase.storage.from(bucketName).getPublicUrl(destinationPath);
 
     return sendJson(res, 200, {
       success: true,
       platform: item.id,
       label: item.label,
       bucket: bucketName,
-      path: item.path,
+      path: destinationPath,
       token: data.token,
       signedUrl: data.signedUrl,
       publicUrl: publicData?.publicUrl || '',
@@ -94,4 +122,3 @@ export default async function handler(req, res) {
     });
   }
 }
-
