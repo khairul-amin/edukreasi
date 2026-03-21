@@ -63,7 +63,7 @@
           <div class="max-w-3xl">
             <p class="text-xs font-semibold uppercase tracking-[0.38em] text-stone-400">Admin-Only Server</p>
             <h2 class="mt-4 font-display text-3xl font-bold leading-tight text-white lg:text-5xl">Semua lisensi client sekarang diterbitkan, dipantau, dan diverifikasi dari satu dashboard.</h2>
-            <p id="heroSubtitle" class="mt-4 max-w-2xl text-base leading-7 text-stone-300 lg:text-lg">Dashboard ini dipakai untuk mengelola lisensi, memantau checkout Midtrans, dan menandatangani token online tanpa lagi bergantung pada server lisensi di project client.</p>
+            <p id="heroSubtitle" class="mt-4 max-w-2xl text-base leading-7 text-stone-300 lg:text-lg">Dashboard ini dipakai untuk mengelola lisensi, memantau checkout, dan menandatangani token online tanpa lagi bergantung pada server lisensi di project client.</p>
           </div>
         </article>
       </section>
@@ -75,7 +75,7 @@
           <div class="mb-6">
             <p class="text-xs font-semibold uppercase tracking-[0.38em] text-stone-400">Checkout Settings</p>
             <h3 class="mt-2 font-display text-2xl font-bold text-white">Atur harga checkout dari dashboard admin</h3>
-            <p class="mt-2 text-sm leading-6 text-stone-300">Nominal yang disimpan di sini akan dipakai halaman checkout publik dan transaksi Midtrans. Form publik tidak lagi bisa menentukan harga sendiri.</p>
+            <p class="mt-2 text-sm leading-6 text-stone-300">Nominal yang disimpan di sini akan dipakai halaman checkout publik dan transaksi. Form publik tidak lagi bisa menentukan harga sendiri.</p>
           </div>
           <form id="licenseConfigForm" class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
@@ -127,21 +127,21 @@
                 <input id="builderDeviceId" type="text" class="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 font-mono text-white outline-none placeholder:text-stone-500 focus:border-teal-300/50" placeholder="Device ID client" />
               </div>
             </div>
-            <label class="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-sm leading-6 text-stone-300">
+            <!-- <label class="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-4 text-sm leading-6 text-stone-300">
               <input id="builderSimulation" type="checkbox" class="mt-1 h-4 w-4 rounded border-white/20 bg-stone-900 text-teal-300 focus:ring-teal-300" />
               <span>
                 <span class="block font-semibold text-stone-100">Mode simulasi internal</span>
                 Gunakan hanya untuk test lokal. Jika dimatikan, checkout akan membuka Midtrans Snap sandbox/production sesuai env.
               </span>
-            </label>
+            </label>-->
           </form>
-          <div class="mt-5 rounded-3xl border border-white/10 bg-black/20 p-4">
+          <!-- <div class="mt-5 rounded-3xl border border-white/10 bg-black/20 p-4">
             <p class="text-xs uppercase tracking-[0.3em] text-stone-500">Preview Link</p>
             <a id="checkoutPreview" class="mt-3 block break-all text-sm leading-6 text-teal-200 underline decoration-teal-300/40 underline-offset-4" href="#" target="_blank" rel="noreferrer">Memuat preview checkout...</a>
-          </div>
+          </div> -->
           <div class="mt-5 flex flex-wrap gap-3">
             <button id="openCheckoutBtn" type="button" class="rounded-2xl bg-teal-300 px-5 py-3 font-semibold text-slate-950 transition hover:bg-teal-200">Buka Checkout</button>
-            <button id="copyCheckoutBtn" type="button" class="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 font-semibold text-white transition hover:bg-white/10">Salin Link</button>
+            <!-- <button id="copyCheckoutBtn" type="button" class="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 font-semibold text-white transition hover:bg-white/10">Salin Link</button> -->
           </div>
         </article>
 
@@ -149,7 +149,6 @@
           <div class="mb-6">
             <p class="text-xs font-semibold uppercase tracking-[0.38em] text-stone-400">Manual Issue</p>
             <h3 class="mt-2 font-display text-2xl font-bold text-white">Terbitkan lisensi tanpa menunggu order</h3>
-            <p class="mt-2 text-sm leading-6 text-stone-300">Gunakan ini saat sekolah butuh akses cepat. Token akan dibuat langsung dari server lisensi online Edukreasi.</p>
           </div>
           <form id="issueForm" class="space-y-4">
             <div>
