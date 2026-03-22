@@ -504,7 +504,7 @@ function renderAppDownloads(downloads) {
       els.adminExePublicUrl.textContent = admin.url;
     } else {
       els.adminExePublicUrl.href = '#';
-      els.adminExePublicUrl.textContent = 'Belum ada file EXE. Silakan upload.';
+      els.adminExePublicUrl.textContent = 'Belum ada paket admin. Silakan upload.';
     }
   }
 }
@@ -1383,7 +1383,6 @@ init().catch((error) => {
   console.error(error);
   showFlash(error.message || 'Dashboard lisensi gagal dimuat.', 'error');
 });
-
 
 
 

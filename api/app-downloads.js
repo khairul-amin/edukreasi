@@ -28,6 +28,16 @@ function toIsoOrNull(value) {
   return Number.isFinite(time) ? date.toISOString() : null;
 }
 
+function getAcceptedExts(item) {
+  const values = Array.isArray(item?.acceptedExts) && item.acceptedExts.length
+    ? item.acceptedExts
+    : [item?.expectedExt];
+
+  return values
+    .map((entry) => String(entry || '').trim().toLowerCase())
+    .filter(Boolean);
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return methodNotAllowed(res, ['GET']);
@@ -105,7 +115,10 @@ export default async function handler(req, res) {
 
       const matches = objects
         .filter((entry) => entry?.Key)
-        .filter((entry) => String(entry.Key || '').toLowerCase().endsWith(item.expectedExt))
+        .filter((entry) => {
+          const key = String(entry.Key || '').toLowerCase();
+          return getAcceptedExts(item).some((ext) => key.endsWith(ext));
+        })
         .sort((a, b) => {
           const left = new Date(a?.LastModified || 0).getTime();
           const right = new Date(b?.LastModified || 0).getTime();

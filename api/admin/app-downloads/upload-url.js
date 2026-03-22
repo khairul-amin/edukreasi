@@ -39,6 +39,16 @@ function joinPublicUrl(baseUrl, path) {
   return `${base}/${right}`;
 }
 
+function getAcceptedExts(item) {
+  const values = Array.isArray(item?.acceptedExts) && item.acceptedExts.length
+    ? item.acceptedExts
+    : [item?.expectedExt];
+
+  return values
+    .map((entry) => String(entry || '').trim().toLowerCase())
+    .filter(Boolean);
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return methodNotAllowed(res, ['POST']);
@@ -64,8 +74,9 @@ export default async function handler(req, res) {
 
     if (incomingName) {
       const incomingExt = extname(incomingName);
-      if (!incomingExt || incomingExt !== item.expectedExt) {
-        throw createHttpError(400, `File harus berformat ${item.expectedExt}.`);
+      const acceptedExts = getAcceptedExts(item);
+      if (!incomingExt || !acceptedExts.includes(incomingExt)) {
+        throw createHttpError(400, `File harus berformat ${acceptedExts.join(', ')}.`);
       }
     }
 
