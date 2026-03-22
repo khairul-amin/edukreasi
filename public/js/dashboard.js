@@ -151,6 +151,45 @@ function formatNumber(value) {
   return Number(value || 0).toLocaleString('id-ID');
 }
 
+function nowMs() {
+  if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+    return performance.now();
+  }
+  return Date.now();
+}
+
+function formatDurationMs(value) {
+  const ms = Number(value || 0);
+  if (!Number.isFinite(ms) || ms <= 0) return '0 ms';
+  if (ms < 1000) return `${Math.round(ms)} ms`;
+
+  const seconds = ms / 1000;
+  if (seconds < 60) {
+    return `${seconds.toFixed(seconds >= 10 ? 1 : 2)} detik`;
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes} menit ${remainingSeconds.toFixed(1)} detik`;
+}
+
+function formatBytes(value) {
+  const bytes = Number(value || 0);
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let size = bytes;
+  let unitIndex = 0;
+
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+
+  const digits = size >= 100 || unitIndex === 0 ? 0 : size >= 10 ? 1 : 2;
+  return `${size.toFixed(digits)} ${units[unitIndex]}`;
+}
+
 function humanizeStatus(value) {
   const text = String(value || '').trim().replace(/_/g, ' ');
   if (!text) return '-';
@@ -541,8 +580,17 @@ async function handleAppUpload(platform, fileInput, button, defaultContentType) 
     submitBtn.textContent = 'Mengunggah...';
   }
 
+  const totalStartMs = nowMs();
+  const uploadLabel = `[upload:${platform}]`;
+  console.info(`${uploadLabel} Mulai upload`, {
+    fileName: file.name,
+    fileSize: formatBytes(file.size),
+    contentType: file.type || defaultContentType || 'application/octet-stream'
+  });
+
   try {
     const contentType = resolveUploadContentType(file, defaultContentType);
+    const signedUrlStartMs = nowMs();
     const uploadConfig = await apiFetch('/api/admin/app-downloads/upload-url', {
       method: 'POST',
       body: JSON.stringify({
@@ -551,6 +599,16 @@ async function handleAppUpload(platform, fileInput, button, defaultContentType) 
         contentType
       })
     });
+    const signedUrlElapsedMs = nowMs() - signedUrlStartMs;
+
+    console.info(`${uploadLabel} Signed URL siap`, {
+      path: uploadConfig.path,
+      publicUrl: uploadConfig.publicUrl,
+      elapsed: formatDurationMs(signedUrlElapsedMs)
+    });
+
+    const transferStartMs = nowMs();
+    let nextProgressLog = 25;
 
     await uploadToSignedUrl(uploadConfig.signedUrl, file, {
       method: uploadConfig.method || 'PUT',
@@ -559,7 +617,30 @@ async function handleAppUpload(platform, fileInput, button, defaultContentType) 
         if (!submitBtn) return;
         const pct = total > 0 ? Math.min(100, Math.round((loaded / total) * 100)) : 0;
         submitBtn.textContent = `Mengunggah... ${pct}%`;
+
+        if (pct >= nextProgressLog) {
+          console.info(`${uploadLabel} Progres ${pct}%`, {
+            uploaded: formatBytes(loaded),
+            total: formatBytes(total),
+            elapsed: formatDurationMs(nowMs() - transferStartMs)
+          });
+          while (nextProgressLog <= pct) {
+            nextProgressLog += 25;
+          }
+        }
       }
+    });
+
+    const transferElapsedMs = nowMs() - transferStartMs;
+    const totalElapsedMs = nowMs() - totalStartMs;
+
+    console.info(`${uploadLabel} Upload selesai`, {
+      fileName: file.name,
+      fileSize: formatBytes(file.size),
+      signedUrlDuration: formatDurationMs(signedUrlElapsedMs),
+      transferDuration: formatDurationMs(transferElapsedMs),
+      totalDuration: formatDurationMs(totalElapsedMs),
+      publicUrl: uploadConfig.publicUrl
     });
 
     showFlash('Upload berhasil. Link download publik sudah siap dipakai.', 'success');
@@ -574,6 +655,12 @@ async function handleAppUpload(platform, fileInput, button, defaultContentType) 
       // ignore
     }
   } catch (error) {
+    console.error(`${uploadLabel} Upload gagal`, {
+      fileName: file.name,
+      fileSize: formatBytes(file.size),
+      elapsed: formatDurationMs(nowMs() - totalStartMs),
+      message: error.message || 'Upload file gagal diproses.'
+    });
     showFlash(error.message || 'Upload file gagal diproses.', 'error');
   } finally {
     if (submitBtn) {
@@ -1296,7 +1383,6 @@ init().catch((error) => {
   console.error(error);
   showFlash(error.message || 'Dashboard lisensi gagal dimuat.', 'error');
 });
-
 
 
 
