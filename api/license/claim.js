@@ -30,15 +30,17 @@ export default async function handler(req, res) {
       }
 
       const supabase = createServiceClient();
+      let activation = null;
       if (activationId) {
-        await deactivateActivationById(supabase, activationId);
+        activation = await deactivateActivationById(supabase, activationId);
       } else {
-        await deactivateActivationByDevice(supabase, licenseId, deviceId);
+        activation = await deactivateActivationByDevice(supabase, licenseId, deviceId);
       }
 
       return sendJson(res, 200, {
         success: true,
-        message: 'Aktivasi berhasil dinonaktifkan.'
+        message: 'Aktivasi berhasil dinonaktifkan.',
+        activation
       });
     } catch (error) {
       return sendJson(res, error.statusCode || 500, {

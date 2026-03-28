@@ -286,8 +286,10 @@ async function apiFetch(path, options = {}) {
     headers.set('Content-Type', 'application/json');
   }
 
+  const method = String(options.method || 'GET').toUpperCase();
   const response = await fetch(path, {
     ...options,
+    cache: options.cache || (method === 'GET' ? 'no-store' : undefined),
     headers
   });
 
@@ -965,12 +967,18 @@ function bindDeactivateButtons() {
       if (!window.confirm('Nonaktifkan aktivasi device ini? Registry lisensi akan tetap aktif.')) return;
       button.disabled = true;
       try {
-        await apiFetch('/api/license/deactivate', {
+        const result = await apiFetch('/api/license/claim?deactivate=1', {
           method: 'POST',
           body: JSON.stringify({ activation_id: activationId })
         });
+        if (result?.activation && state.adminData?.activations?.length) {
+          state.adminData.activations = state.adminData.activations
+            .map((row) => (row.id === result.activation.id ? { ...row, ...result.activation } : row))
+            .sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime());
+          renderActivationTable(state.adminData.activations);
+        }
         showFlash('Aktivasi device berhasil dinonaktifkan. Registry lisensi tetap aktif.', 'success');
-        await loadAdminDashboard();
+        await loadAdminDashboard().catch(() => {});
       } catch (error) {
         showFlash(error.message, 'error');
       } finally {
@@ -1388,7 +1396,6 @@ init().catch((error) => {
   console.error(error);
   showFlash(error.message || 'Dashboard lisensi gagal dimuat.', 'error');
 });
-
 
 
 
