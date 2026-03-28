@@ -962,14 +962,14 @@ function bindDeactivateButtons() {
     button.addEventListener('click', async () => {
       const activationId = button.dataset.activationId;
       if (!activationId) return;
-      if (!window.confirm('Nonaktifkan aktivasi device ini?')) return;
+      if (!window.confirm('Nonaktifkan aktivasi device ini? Registry lisensi akan tetap aktif.')) return;
       button.disabled = true;
       try {
         await apiFetch('/api/license/deactivate', {
           method: 'POST',
           body: JSON.stringify({ activation_id: activationId })
         });
-        showFlash('Aktivasi berhasil dinonaktifkan.', 'success');
+        showFlash('Aktivasi device berhasil dinonaktifkan. Registry lisensi tetap aktif.', 'success');
         await loadAdminDashboard();
       } catch (error) {
         showFlash(error.message, 'error');
@@ -988,6 +988,10 @@ function renderActivationTable(rows) {
 
   els.activationTable.innerHTML = rows.map((row) => {
     const license = row.licenses || {};
+    const isActive = String(row.status || '').toLowerCase() === 'active';
+    const statusMeta = isActive
+      ? `Aktif sejak: ${escapeHtml(formatDate(row.activated_at))}`
+      : `Dinonaktifkan: ${escapeHtml(formatDate(row.deactivated_at))}`;
     return `
       <tr class="border-b border-white/5 align-top last:border-b-0">
         <td class="px-5 py-4">
@@ -996,12 +1000,13 @@ function renderActivationTable(rows) {
         </td>
         <td class="px-5 py-4">
           ${renderBadge(row.status || 'active', 'activation')}
-          <div class="mt-3 text-sm text-stone-300">Aktif sejak: ${escapeHtml(formatDate(row.activated_at))}</div>
+          <div class="mt-3 text-sm text-stone-300">${statusMeta}</div>
           <div class="mt-1 text-sm text-stone-400">Label: ${escapeHtml(row.device_label || 'Belum ada label')}</div>
+          <div class="mt-1 text-xs text-stone-500">Status registry lisensi utama tidak berubah dari tombol ini.</div>
         </td>
         <td class="px-5 py-4">
-          ${String(row.status || '').toLowerCase() === 'active'
-            ? `<button type="button" data-activation-id="${escapeHtml(row.id)}" class="deactivate-btn rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/20">Nonaktifkan</button>`
+          ${isActive
+            ? `<button type="button" data-activation-id="${escapeHtml(row.id)}" class="deactivate-btn rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/20">Nonaktifkan Device</button>`
             : '<span class="text-xs text-stone-500">Sudah nonaktif</span>'}
         </td>
       </tr>
@@ -1383,7 +1388,6 @@ init().catch((error) => {
   console.error(error);
   showFlash(error.message || 'Dashboard lisensi gagal dimuat.', 'error');
 });
-
 
 
 
