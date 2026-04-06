@@ -26,6 +26,7 @@ const els = {
   studentApkAlternativeForm: document.getElementById('studentApkAlternativeForm'),
   studentApkAlternativeInput: document.getElementById('studentApkAlternativeInput'),
   studentApkAlternativeSaveBtn: document.getElementById('studentApkAlternativeSaveBtn'),
+  studentApkAlternativeStatus: document.getElementById('studentApkAlternativeStatus'),
   adminExePublicUrl: document.getElementById('adminExePublicUrl'),
   adminExeUploadForm: document.getElementById('adminExeUploadForm'),
   adminExeFile: document.getElementById('adminExeFile'),
@@ -480,9 +481,7 @@ function renderLicenseConfigPanel(config) {
   if (!config || !els.checkoutPriceInput) return;
 
   els.checkoutPriceInput.value = Number(config.price || 0) > 0 ? String(Number(config.price || 0)) : '';
-  if (config.studentAlternativeDownloadUrl) {
-    renderStudentAlternativeLink(config.studentAlternativeDownloadUrl);
-  }
+  renderStudentAlternativeLink(config.studentAlternativeDownloadUrl || '');
 }
 
 async function loadAppDownloads() {
@@ -540,6 +539,19 @@ function renderStudentAlternativeLink(url) {
   }
 }
 
+function setStudentAlternativeStatus(message, tone = 'info') {
+  if (!els.studentApkAlternativeStatus) return;
+
+  const tones = {
+    info: 'text-zinc-400',
+    success: 'text-emerald-300',
+    error: 'text-rose-300'
+  };
+
+  els.studentApkAlternativeStatus.className = `mt-2 text-xs ${tones[tone] || tones.info}`;
+  els.studentApkAlternativeStatus.textContent = String(message || '').trim() || 'Link alternatif akan dipakai untuk tombol "Unduh Alternatif" di landing page.';
+}
+
 function normalizeDashboardOptionalUrl(value) {
   const raw = String(value || '').trim();
   if (!raw) return '';
@@ -567,6 +579,7 @@ async function handleStudentAlternativeLinkSubmit(event) {
   try {
     url = normalizeDashboardOptionalUrl(els.studentApkAlternativeInput?.value || '');
   } catch (error) {
+    setStudentAlternativeStatus(error.message, 'error');
     showFlash(error.message, 'error');
     return;
   }
@@ -575,6 +588,7 @@ async function handleStudentAlternativeLinkSubmit(event) {
     submitBtn.disabled = true;
     submitBtn.textContent = 'Menyimpan...';
   }
+  setStudentAlternativeStatus('Menyimpan link alternatif...', 'info');
 
   try {
     const result = await apiFetch('/api/admin/license-config', {
@@ -589,18 +603,33 @@ async function handleStudentAlternativeLinkSubmit(event) {
       throw new Error('Link belum tersimpan di database. Jalankan update SQL `supabase/license-settings.sql` di Supabase, lalu coba simpan lagi.');
     }
 
-    const downloads = await loadAppDownloads();
+    let downloads = null;
+    try {
+      downloads = await loadAppDownloads();
+    } catch (error) {
+      if (savedUrl || !url) {
+        renderStudentAlternativeLink(savedUrl);
+        setStudentAlternativeStatus('Link tersimpan, tetapi preview publik belum bisa dimuat. Coba refresh halaman sekali.', 'info');
+        showFlash('Link tersimpan, tetapi preview publik belum bisa dimuat. Coba refresh halaman sekali.', 'info');
+        return;
+      }
+      throw error;
+    }
+
     const publicUrl = String(downloads?.student_apk?.alternativeUrl || '').trim();
 
     if (savedUrl && !publicUrl) {
       renderStudentAlternativeLink(savedUrl);
+      setStudentAlternativeStatus('Link tersimpan di pengaturan admin, tetapi API publik belum mengembalikannya. Refresh sekali.', 'info');
       showFlash('Link tersimpan di pengaturan admin, tetapi API publik belum mengembalikannya. Refresh sekali. Jika tetap kosong, jalankan SQL update di Supabase.', 'info');
       return;
     }
 
     renderAppDownloads(downloads);
+    setStudentAlternativeStatus(result.message || 'Link alternatif siswa berhasil diperbarui.', 'success');
     showFlash(result.message || 'Link alternatif siswa berhasil diperbarui.', 'success');
   } catch (error) {
+    setStudentAlternativeStatus(error.message || 'Link alternatif siswa gagal disimpan.', 'error');
     showFlash(error.message || 'Link alternatif siswa gagal disimpan.', 'error');
   } finally {
     if (submitBtn) {
