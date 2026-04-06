@@ -545,11 +545,10 @@ async function handleStudentAlternativeLinkSubmit(event) {
   }
 
   try {
-    const result = await apiFetch('/api/admin/app-downloads/alternative-url', {
+    const result = await apiFetch('/api/admin/license-config', {
       method: 'PUT',
       body: JSON.stringify({
-        platform: 'student_apk',
-        url
+        studentAlternativeDownloadUrl: url
       })
     });
 
@@ -1453,6 +1452,5 @@ init().catch((error) => {
   console.error(error);
   showFlash(error.message || 'Dashboard lisensi gagal dimuat.', 'error');
 });
-
 
 
