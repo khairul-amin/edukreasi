@@ -715,7 +715,7 @@ async function handleStudentAlternativeLinkSubmit(event) {
 }
 
 async function handleAppUpdateConfigSubmit(event) {
-  event.preventDefault();
+  event?.preventDefault?.();
 
   const submitButton = els.saveAppUpdateConfigBtn;
   const originalLabel = submitButton?.textContent || 'Simpan Version Code';
@@ -1546,6 +1546,7 @@ async function init() {
 els.issueForm?.addEventListener('submit', handleIssueLicense);
 els.licenseConfigForm?.addEventListener('submit', handleLicenseConfigSubmit);
 els.appUpdateConfigForm?.addEventListener('submit', handleAppUpdateConfigSubmit);
+els.saveAppUpdateConfigBtn?.addEventListener('click', handleAppUpdateConfigSubmit);
 
 els.studentApkUploadForm?.addEventListener('submit', (event) => {
   event.preventDefault();
