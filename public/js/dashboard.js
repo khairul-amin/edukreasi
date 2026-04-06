@@ -540,12 +540,36 @@ function renderStudentAlternativeLink(url) {
   }
 }
 
+function normalizeDashboardOptionalUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+
+  const candidate = /^[a-z]+:\/\//i.test(raw) ? raw : `https://${raw}`;
+
+  try {
+    const normalized = new URL(candidate);
+    if (!['http:', 'https:'].includes(normalized.protocol)) {
+      throw new Error('protocol');
+    }
+    return normalized.toString();
+  } catch {
+    throw new Error('Link alternatif harus berupa URL yang valid, misalnya https://github.com/.../file.apk');
+  }
+}
+
 async function handleStudentAlternativeLinkSubmit(event) {
   event.preventDefault();
 
   const submitBtn = els.studentApkAlternativeSaveBtn;
   const originalLabel = submitBtn?.textContent || 'Simpan Link Alternatif';
-  const url = els.studentApkAlternativeInput?.value.trim() || '';
+  let url = '';
+
+  try {
+    url = normalizeDashboardOptionalUrl(els.studentApkAlternativeInput?.value || '');
+  } catch (error) {
+    showFlash(error.message, 'error');
+    return;
+  }
 
   if (submitBtn) {
     submitBtn.disabled = true;
@@ -1473,4 +1497,3 @@ init().catch((error) => {
   console.error(error);
   showFlash(error.message || 'Dashboard lisensi gagal dimuat.', 'error');
 });
-
