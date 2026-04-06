@@ -19,6 +19,7 @@ export default async function handler(req, res) {
           currency: config.currency,
           priceLabel: formatCurrency(config.price, config.currency),
           studentAlternativeDownloadUrl: config.studentAlternativeDownloadUrl || '',
+          studentLatestVersionCode: config.studentLatestVersionCode,
           priceSource: config.priceSource,
           priceUpdatedAt: config.priceUpdatedAt,
           priceUpdatedBy: config.priceUpdatedBy
@@ -29,8 +30,9 @@ export default async function handler(req, res) {
     const body = await readJsonBody(req);
     const hasPriceUpdate = body.price !== undefined;
     const hasStudentAlternativeDownloadUrlUpdate = body.studentAlternativeDownloadUrl !== undefined;
+    const hasStudentLatestVersionCodeUpdate = body.studentLatestVersionCode !== undefined;
 
-    if (!hasPriceUpdate && !hasStudentAlternativeDownloadUrlUpdate) {
+    if (!hasPriceUpdate && !hasStudentAlternativeDownloadUrlUpdate && !hasStudentLatestVersionCodeUpdate) {
       return sendJson(res, 400, {
         success: false,
         message: 'Tidak ada perubahan pengaturan yang dikirim.'
@@ -42,6 +44,9 @@ export default async function handler(req, res) {
       ...(hasStudentAlternativeDownloadUrlUpdate
         ? { studentAlternativeDownloadUrl: body.studentAlternativeDownloadUrl }
         : {}),
+      ...(hasStudentLatestVersionCodeUpdate
+        ? { studentLatestVersionCode: body.studentLatestVersionCode }
+        : {}),
       updatedBy: admin?.profile?.id || null
     });
 
@@ -49,12 +54,14 @@ export default async function handler(req, res) {
     const altUrl = String(config.studentAlternativeDownloadUrl || '').trim();
     let message = 'Pengaturan checkout berhasil diperbarui dari dashboard admin.';
 
-    if (!hasPriceUpdate && hasStudentAlternativeDownloadUrlUpdate) {
+    if (!hasPriceUpdate && hasStudentAlternativeDownloadUrlUpdate && !hasStudentLatestVersionCodeUpdate) {
       message = altUrl
         ? 'Link unduhan alternatif siswa berhasil disimpan.'
         : 'Link unduhan alternatif siswa berhasil dihapus.';
-    } else if (hasPriceUpdate && !hasStudentAlternativeDownloadUrlUpdate) {
+    } else if (hasPriceUpdate && !hasStudentAlternativeDownloadUrlUpdate && !hasStudentLatestVersionCodeUpdate) {
       message = 'Harga checkout berhasil diperbarui dari dashboard admin.';
+    } else if (!hasPriceUpdate && !hasStudentAlternativeDownloadUrlUpdate && hasStudentLatestVersionCodeUpdate) {
+      message = 'Version code update aplikasi berhasil diperbarui.';
     }
 
     return sendJson(res, 200, {
@@ -65,6 +72,7 @@ export default async function handler(req, res) {
         currency: config.currency,
         priceLabel: formatCurrency(config.price, config.currency),
         studentAlternativeDownloadUrl: config.studentAlternativeDownloadUrl || '',
+        studentLatestVersionCode: config.studentLatestVersionCode,
         priceSource: config.priceSource,
         priceUpdatedAt: config.priceUpdatedAt,
         priceUpdatedBy: config.priceUpdatedBy

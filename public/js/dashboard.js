@@ -17,6 +17,11 @@ const els = {
   licenseConfigForm: document.getElementById('licenseConfigForm'),
   checkoutPriceInput: document.getElementById('checkoutPriceInput'),
   saveLicenseConfigBtn: document.getElementById('saveLicenseConfigBtn'),
+  appUpdateConfigForm: document.getElementById('appUpdateConfigForm'),
+  latestVersionCodeInput: document.getElementById('latestVersionCodeInput'),
+  appUpdateDownloadUrl: document.getElementById('appUpdateDownloadUrl'),
+  saveAppUpdateConfigBtn: document.getElementById('saveAppUpdateConfigBtn'),
+  appUpdateConfigStatus: document.getElementById('appUpdateConfigStatus'),
   licenseConfigMeta: document.getElementById('licenseConfigMeta'),
   studentApkPublicUrl: document.getElementById('studentApkPublicUrl'),
   studentApkUploadForm: document.getElementById('studentApkUploadForm'),
@@ -481,6 +486,11 @@ function renderLicenseConfigPanel(config) {
   if (!config || !els.checkoutPriceInput) return;
 
   els.checkoutPriceInput.value = Number(config.price || 0) > 0 ? String(Number(config.price || 0)) : '';
+  if (els.latestVersionCodeInput) {
+    els.latestVersionCodeInput.value = Number(config.studentLatestVersionCode || 0) > 0
+      ? String(Number(config.studentLatestVersionCode || 0))
+      : '';
+  }
   renderStudentAlternativeLink(config.studentAlternativeDownloadUrl || '');
 }
 
@@ -505,6 +515,7 @@ function renderAppDownloads(downloads) {
     }
   }
 
+  renderAppUpdateDownloadUrl(student?.url || '');
   renderStudentAlternativeLink(student?.alternativeUrl || '');
 
   const admin = downloads?.admin_exe;
@@ -517,6 +528,36 @@ function renderAppDownloads(downloads) {
       els.adminExePublicUrl.textContent = 'Belum ada paket admin. Silakan upload.';
     }
   }
+}
+
+function renderAppUpdateDownloadUrl(url) {
+  const cleanUrl = String(url || '').trim();
+  if (!els.appUpdateDownloadUrl) return;
+
+  if (cleanUrl) {
+    els.appUpdateDownloadUrl.href = cleanUrl;
+    els.appUpdateDownloadUrl.textContent = cleanUrl;
+    els.appUpdateDownloadUrl.classList.remove('opacity-60', 'pointer-events-none');
+    return;
+  }
+
+  els.appUpdateDownloadUrl.href = '#';
+  els.appUpdateDownloadUrl.textContent = 'Belum ada APK siswa utama. Upload APK terlebih dahulu agar /update.json punya downloadUrl.';
+  els.appUpdateDownloadUrl.classList.add('opacity-60', 'pointer-events-none');
+}
+
+function setAppUpdateConfigStatus(message, tone = 'info') {
+  if (!els.appUpdateConfigStatus) return;
+
+  const tones = {
+    info: 'text-zinc-400',
+    success: 'text-emerald-300',
+    error: 'text-rose-300'
+  };
+
+  els.appUpdateConfigStatus.className = `mt-3 text-xs ${tones[tone] || tones.info}`;
+  els.appUpdateConfigStatus.textContent = String(message || '').trim()
+    || 'Manifest update aplikasi akan selalu mengambil `downloadUrl` dari APK siswa utama terbaru.';
 }
 
 function renderStudentAlternativeLink(url) {
@@ -635,6 +676,58 @@ async function handleStudentAlternativeLinkSubmit(event) {
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.textContent = originalLabel;
+    }
+  }
+}
+
+async function handleAppUpdateConfigSubmit(event) {
+  event.preventDefault();
+
+  const submitButton = els.saveAppUpdateConfigBtn;
+  const originalLabel = submitButton?.textContent || 'Simpan Version Code';
+  const versionCode = Math.round(Number(els.latestVersionCodeInput?.value || 0));
+
+  if (!Number.isFinite(versionCode) || versionCode <= 0) {
+    setAppUpdateConfigStatus('Version code update harus berupa angka lebih dari 0.', 'error');
+    showFlash('Version code update harus berupa angka lebih dari 0.', 'error');
+    return;
+  }
+
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = 'Menyimpan...';
+  }
+  setAppUpdateConfigStatus('Menyimpan version code update aplikasi...', 'info');
+
+  try {
+    const result = await apiFetch('/api/admin/license-config', {
+      method: 'PUT',
+      body: JSON.stringify({
+        studentLatestVersionCode: versionCode
+      })
+    });
+
+    let downloads = null;
+    try {
+      downloads = await loadAppDownloads();
+    } catch {
+      downloads = null;
+    }
+
+    await loadAdminDashboard();
+    if (downloads) {
+      renderAppDownloads(downloads);
+    }
+
+    setAppUpdateConfigStatus(result.message || 'Version code update aplikasi berhasil diperbarui.', 'success');
+    showFlash(result.message || 'Version code update aplikasi berhasil diperbarui.', 'success');
+  } catch (error) {
+    setAppUpdateConfigStatus(error.message || 'Version code update aplikasi gagal disimpan.', 'error');
+    showFlash(error.message || 'Version code update aplikasi gagal disimpan.', 'error');
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = originalLabel;
     }
   }
 }
@@ -1418,6 +1511,7 @@ async function init() {
 }
 els.issueForm?.addEventListener('submit', handleIssueLicense);
 els.licenseConfigForm?.addEventListener('submit', handleLicenseConfigSubmit);
+els.appUpdateConfigForm?.addEventListener('submit', handleAppUpdateConfigSubmit);
 
 els.studentApkUploadForm?.addEventListener('submit', (event) => {
   event.preventDefault();

@@ -25,6 +25,7 @@ export default async function handler(req, res) {
         currency: config.currency,
         priceLabel: formatCurrency(config.price, config.currency),
         studentAlternativeDownloadUrl: config.studentAlternativeDownloadUrl || '',
+        studentLatestVersionCode: config.studentLatestVersionCode,
         priceSource: config.priceSource,
         priceUpdatedAt: config.priceUpdatedAt,
         activationLimit: config.activationLimit,

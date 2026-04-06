@@ -21,6 +21,9 @@ create table if not exists public.license_settings (
 alter table public.license_settings
 add column if not exists student_alt_download_url text;
 
+alter table public.license_settings
+add column if not exists student_latest_version_code bigint not null default 0;
+
 alter table public.license_settings enable row level security;
 
 insert into public.license_settings (id, checkout_price)

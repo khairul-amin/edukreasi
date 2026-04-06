@@ -167,6 +167,13 @@ export default async function handler(req, res) {
       downloads.student_apk.alternativeAvailable = Boolean(alternativeUrl);
     }
 
+    if (String(req.query?.manifest || '') === '1') {
+      return sendJson(res, 200, {
+        latestVersionCode: Number(runtimeConfig?.studentLatestVersionCode || 0),
+        downloadUrl: String(downloads?.student_apk?.url || '').trim()
+      });
+    }
+
     return sendJson(res, 200, {
       success: true,
       bucket,

@@ -9,6 +9,7 @@
     { "src": "/api/license/public-key", "dest": "/api/license/public-config?publicKey=1" },
     { "src": "/api/license/deactivate", "dest": "/api/license/claim?deactivate=1" },
     { "src": "/api/(.*)", "dest": "/api/$1.js" },
+    { "src": "/update.json", "dest": "/api/app-downloads?manifest=1" },
     { "src": "/admin", "dest": "/public/admin/login.html" },
     { "src": "/admin/dashboard", "dest": "/public/admin/dashboard.html" },
     { "src": "/checkout", "dest": "/public/checkout.html" },
