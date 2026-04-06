@@ -480,6 +480,9 @@ function renderLicenseConfigPanel(config) {
   if (!config || !els.checkoutPriceInput) return;
 
   els.checkoutPriceInput.value = Number(config.price || 0) > 0 ? String(Number(config.price || 0)) : '';
+  if (config.studentAlternativeDownloadUrl) {
+    renderStudentAlternativeLink(config.studentAlternativeDownloadUrl);
+  }
 }
 
 async function loadAppDownloads() {
@@ -503,7 +506,23 @@ function renderAppDownloads(downloads) {
     }
   }
 
-  const studentAlternativeUrl = String(student?.alternativeUrl || '').trim();
+  renderStudentAlternativeLink(student?.alternativeUrl || '');
+
+  const admin = downloads?.admin_exe;
+  if (els.adminExePublicUrl) {
+    if (admin?.url) {
+      els.adminExePublicUrl.href = admin.url;
+      els.adminExePublicUrl.textContent = admin.url;
+    } else {
+      els.adminExePublicUrl.href = '#';
+      els.adminExePublicUrl.textContent = 'Belum ada paket admin. Silakan upload.';
+    }
+  }
+}
+
+function renderStudentAlternativeLink(url) {
+  const studentAlternativeUrl = String(url || '').trim();
+
   if (els.studentApkAlternativeUrl) {
     if (studentAlternativeUrl) {
       els.studentApkAlternativeUrl.href = studentAlternativeUrl;
@@ -518,17 +537,6 @@ function renderAppDownloads(downloads) {
 
   if (els.studentApkAlternativeInput && document.activeElement !== els.studentApkAlternativeInput) {
     els.studentApkAlternativeInput.value = studentAlternativeUrl;
-  }
-
-  const admin = downloads?.admin_exe;
-  if (els.adminExePublicUrl) {
-    if (admin?.url) {
-      els.adminExePublicUrl.href = admin.url;
-      els.adminExePublicUrl.textContent = admin.url;
-    } else {
-      els.adminExePublicUrl.href = '#';
-      els.adminExePublicUrl.textContent = 'Belum ada paket admin. Silakan upload.';
-    }
   }
 }
 
@@ -551,8 +559,21 @@ async function handleStudentAlternativeLinkSubmit(event) {
         studentAlternativeDownloadUrl: url
       })
     });
+    const savedUrl = String(result?.config?.studentAlternativeDownloadUrl || '').trim();
+
+    if (url && !savedUrl) {
+      throw new Error('Link belum tersimpan di database. Jalankan update SQL `supabase/license-settings.sql` di Supabase, lalu coba simpan lagi.');
+    }
 
     const downloads = await loadAppDownloads();
+    const publicUrl = String(downloads?.student_apk?.alternativeUrl || '').trim();
+
+    if (savedUrl && !publicUrl) {
+      renderStudentAlternativeLink(savedUrl);
+      showFlash('Link tersimpan di pengaturan admin, tetapi API publik belum mengembalikannya. Refresh sekali. Jika tetap kosong, jalankan SQL update di Supabase.', 'info');
+      return;
+    }
+
     renderAppDownloads(downloads);
     showFlash(result.message || 'Link alternatif siswa berhasil diperbarui.', 'success');
   } catch (error) {
@@ -1452,5 +1473,4 @@ init().catch((error) => {
   console.error(error);
   showFlash(error.message || 'Dashboard lisensi gagal dimuat.', 'error');
 });
-
 
