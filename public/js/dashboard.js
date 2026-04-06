@@ -94,23 +94,57 @@ function escapeHtml(value) {
 
 function showFlash(message, tone = 'info') {
   if (!els.flash) return;
+  const cleanMessage = String(message || '').trim();
+  if (!cleanMessage) return;
 
   const tones = {
-    info: 'border-sky-400/40 bg-sky-500/10 text-sky-100',
-    success: 'border-emerald-400/40 bg-emerald-500/10 text-emerald-100',
-    error: 'border-rose-400/40 bg-rose-500/10 text-rose-100'
+    info: {
+      shell: 'border-sky-400/30 bg-sky-500/12 text-sky-50 shadow-[0_18px_50px_rgba(14,116,144,0.25)]',
+      badge: 'bg-sky-400/15 text-sky-200 ring-sky-300/20',
+      label: 'INFO'
+    },
+    success: {
+      shell: 'border-emerald-400/30 bg-emerald-500/12 text-emerald-50 shadow-[0_18px_50px_rgba(5,150,105,0.25)]',
+      badge: 'bg-emerald-400/15 text-emerald-200 ring-emerald-300/20',
+      label: 'SUKSES'
+    },
+    error: {
+      shell: 'border-rose-400/30 bg-rose-500/12 text-rose-50 shadow-[0_18px_50px_rgba(225,29,72,0.25)]',
+      badge: 'bg-rose-400/15 text-rose-200 ring-rose-300/20',
+      label: 'GAGAL'
+    }
   };
-
-  els.flash.innerHTML = `
-    <div class="rounded-2xl border px-4 py-3 text-sm shadow-lg backdrop-blur ${tones[tone] || tones.info}">
-      ${escapeHtml(message)}
+  const palette = tones[tone] || tones.info;
+  const toast = document.createElement('div');
+  toast.className = `pointer-events-auto overflow-hidden rounded-2xl border backdrop-blur-xl transition-all duration-300 ${palette.shell}`;
+  toast.innerHTML = `
+    <div class="flex items-start gap-3 px-4 py-3.5">
+      <span class="mt-0.5 inline-flex shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.24em] ring-1 ${palette.badge}">
+        ${palette.label}
+      </span>
+      <p class="min-w-0 flex-1 text-sm font-medium leading-6">${escapeHtml(cleanMessage)}</p>
+      <button type="button" class="rounded-lg px-2 py-1 text-xs font-semibold text-white/60 transition hover:bg-white/10 hover:text-white" aria-label="Tutup notifikasi">
+        Tutup
+      </button>
     </div>
   `;
 
-  window.clearTimeout(showFlash._timer);
-  showFlash._timer = window.setTimeout(() => {
-    els.flash.innerHTML = '';
-  }, 5000);
+  const closeButton = toast.querySelector('button');
+  const removeToast = () => {
+    toast.classList.add('translate-x-2', 'opacity-0');
+    window.setTimeout(() => {
+      toast.remove();
+    }, 220);
+  };
+
+  closeButton?.addEventListener('click', removeToast);
+  els.flash.prepend(toast);
+
+  while (els.flash.children.length > 4) {
+    els.flash.lastElementChild?.remove();
+  }
+
+  window.setTimeout(removeToast, 5000);
 }
 
 function formatDate(value) {
