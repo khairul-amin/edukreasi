@@ -95,11 +95,11 @@
         <p class="text-gray-600 text-sm">
           Aplikasi Android untuk siswa mengikuti ujian dengan keamanan penuh.
         </p>
-        <a id="downloadStudentApk" href="https://download1593.mediafire.com/cckk27bt40qgYtwwMYYQ65WKuujNxQR7wodCDwFBxYGetCHZLBVrK5NOFiTGJ7a7GVMUDIxiiYlhaqcv_qhGvTZ-cTzl_ebwdcHuTa_0P8sGYQbI9R4w8ZxUKW8DOjTX6UVyeZl-n8YvxW0P39cshLUjH_lmhzp0CvnN5SGUwD4PTA/2lbw7nw7uswj47a/Exam+Edukreasi+New+V.3.6.7.apk" download
+        <a id="downloadStudentApkPrimary" href="https://download1593.mediafire.com/cckk27bt40qgYtwwMYYQ65WKuujNxQR7wodCDwFBxYGetCHZLBVrK5NOFiTGJ7a7GVMUDIxiiYlhaqcv_qhGvTZ-cTzl_ebwdcHuTa_0P8sGYQbI9R4w8ZxUKW8DOjTX6UVyeZl-n8YvxW0P39cshLUjH_lmhzp0CvnN5SGUwD4PTA/2lbw7nw7uswj47a/Exam+Edukreasi+New+V.3.6.7.apk" download
            class="block mt-4 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700">
           Unduh untuk Siswa
         </a>
-        <a id="downloadStudentApk" href="https://github.com/khairul-amin/edukreasi/releases/download/exam/EXAM.EDUKREASI-V.3.6.5.apk" download>
+        <a id="downloadStudentApkAlternative" href="#" download class="mt-3 inline-block hidden text-sm font-semibold text-indigo-600 underline underline-offset-4 opacity-60 pointer-events-none">
           Unduh Alternatif
         </a>
       </div>
@@ -209,11 +209,23 @@
         if (!response.ok || !data.success) return;
 
         const studentUrl = data?.downloads?.student_apk?.url;
+        const studentAlternativeUrl = data?.downloads?.student_apk?.alternativeUrl;
         const adminUrl = data?.downloads?.admin_exe?.url;
 
-        const studentLink = document.getElementById('downloadStudentApk');
-        if (studentLink && studentUrl) {
-          studentLink.href = studentUrl;
+        const studentPrimaryLink = document.getElementById('downloadStudentApkPrimary');
+        if (studentPrimaryLink && studentUrl) {
+          studentPrimaryLink.href = studentUrl;
+        }
+
+        const studentAlternativeLink = document.getElementById('downloadStudentApkAlternative');
+        if (studentAlternativeLink) {
+          if (studentAlternativeUrl) {
+            studentAlternativeLink.href = studentAlternativeUrl;
+            studentAlternativeLink.classList.remove('hidden', 'opacity-60', 'pointer-events-none');
+          } else {
+            studentAlternativeLink.href = '#';
+            studentAlternativeLink.classList.add('hidden', 'opacity-60', 'pointer-events-none');
+          }
         }
 
         const adminLink = document.getElementById('downloadAdminExe');

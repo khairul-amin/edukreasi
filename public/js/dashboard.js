@@ -22,6 +22,10 @@ const els = {
   studentApkUploadForm: document.getElementById('studentApkUploadForm'),
   studentApkFile: document.getElementById('studentApkFile'),
   studentApkUploadBtn: document.getElementById('studentApkUploadBtn'),
+  studentApkAlternativeUrl: document.getElementById('studentApkAlternativeUrl'),
+  studentApkAlternativeForm: document.getElementById('studentApkAlternativeForm'),
+  studentApkAlternativeInput: document.getElementById('studentApkAlternativeInput'),
+  studentApkAlternativeSaveBtn: document.getElementById('studentApkAlternativeSaveBtn'),
   adminExePublicUrl: document.getElementById('adminExePublicUrl'),
   adminExeUploadForm: document.getElementById('adminExeUploadForm'),
   adminExeFile: document.getElementById('adminExeFile'),
@@ -499,6 +503,23 @@ function renderAppDownloads(downloads) {
     }
   }
 
+  const studentAlternativeUrl = String(student?.alternativeUrl || '').trim();
+  if (els.studentApkAlternativeUrl) {
+    if (studentAlternativeUrl) {
+      els.studentApkAlternativeUrl.href = studentAlternativeUrl;
+      els.studentApkAlternativeUrl.textContent = studentAlternativeUrl;
+      els.studentApkAlternativeUrl.classList.remove('opacity-60', 'pointer-events-none');
+    } else {
+      els.studentApkAlternativeUrl.href = '#';
+      els.studentApkAlternativeUrl.textContent = 'Belum ada link alternatif. Isi dari dashboard jika diperlukan.';
+      els.studentApkAlternativeUrl.classList.add('opacity-60', 'pointer-events-none');
+    }
+  }
+
+  if (els.studentApkAlternativeInput && document.activeElement !== els.studentApkAlternativeInput) {
+    els.studentApkAlternativeInput.value = studentAlternativeUrl;
+  }
+
   const admin = downloads?.admin_exe;
   if (els.adminExePublicUrl) {
     if (admin?.url) {
@@ -507,6 +528,40 @@ function renderAppDownloads(downloads) {
     } else {
       els.adminExePublicUrl.href = '#';
       els.adminExePublicUrl.textContent = 'Belum ada paket admin. Silakan upload.';
+    }
+  }
+}
+
+async function handleStudentAlternativeLinkSubmit(event) {
+  event.preventDefault();
+
+  const submitBtn = els.studentApkAlternativeSaveBtn;
+  const originalLabel = submitBtn?.textContent || 'Simpan Link Alternatif';
+  const url = els.studentApkAlternativeInput?.value.trim() || '';
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Menyimpan...';
+  }
+
+  try {
+    const result = await apiFetch('/api/admin/app-downloads/alternative-url', {
+      method: 'PUT',
+      body: JSON.stringify({
+        platform: 'student_apk',
+        url
+      })
+    });
+
+    const downloads = await loadAppDownloads();
+    renderAppDownloads(downloads);
+    showFlash(result.message || 'Link alternatif siswa berhasil diperbarui.', 'success');
+  } catch (error) {
+    showFlash(error.message || 'Link alternatif siswa gagal disimpan.', 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalLabel;
     }
   }
 }
@@ -1296,6 +1351,8 @@ els.studentApkUploadForm?.addEventListener('submit', (event) => {
   handleAppUpload('student_apk', els.studentApkFile, els.studentApkUploadBtn, 'application/vnd.android.package-archive');
 });
 
+els.studentApkAlternativeForm?.addEventListener('submit', handleStudentAlternativeLinkSubmit);
+
 els.adminExeUploadForm?.addEventListener('submit', (event) => {
   event.preventDefault();
   handleAppUpload('admin_exe', els.adminExeFile, els.adminExeUploadBtn, 'application/octet-stream');
@@ -1396,7 +1453,6 @@ init().catch((error) => {
   console.error(error);
   showFlash(error.message || 'Dashboard lisensi gagal dimuat.', 'error');
 });
-
 
 
 

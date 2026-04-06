@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --check api/app-downloads.js && node --check api/admin/app-downloads/upload-url.js && node --check api/admin/dashboard.js && node --check api/admin/issue.js && node --check api/admin/license-config.js && node --check api/admin/orders.js && node --check api/client-config.js && node --check api/checkout.js && node --check api/license/claim.js && node --check api/license/public-config.js && node --check lib/app-releases.js && node --check lib/license-settings.js && node --check lib/r2.js && node --check public/js/supabase-browser.js && node --check public/js/login.js && node --check public/js/dashboard.js && node --check public/js/checkout.js",
+    "check": "node --check api/app-downloads.js && node --check api/admin/app-downloads/alternative-url.js && node --check api/admin/app-downloads/upload-url.js && node --check api/admin/dashboard.js && node --check api/admin/issue.js && node --check api/admin/license-config.js && node --check api/admin/orders.js && node --check api/client-config.js && node --check api/checkout.js && node --check api/license/claim.js && node --check api/license/public-config.js && node --check lib/app-releases.js && node --check lib/license-settings.js && node --check lib/r2.js && node --check public/js/supabase-browser.js && node --check public/js/login.js && node --check public/js/dashboard.js && node --check public/js/checkout.js",
     "gen:license-keys": "node scripts/generate-license-keypair.mjs"
   },
   "dependencies": {

@@ -1,6 +1,7 @@
 import { HeadObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { getAppReleaseConfig } from '../lib/app-releases.js';
 import { methodNotAllowed, sendJson } from '../lib/http.js';
+import { getResolvedLicenseConfig } from '../lib/license-settings.js';
 import { createR2Client } from '../lib/r2.js';
 
 function joinPublicUrl(baseUrl, path) {
@@ -45,6 +46,7 @@ export default async function handler(req, res) {
 
   try {
     const config = getAppReleaseConfig();
+    const runtimeConfig = await getResolvedLicenseConfig(req);
     const bucket = config.bucket;
     const publicBaseUrl = config.publicBaseUrl;
     const r2 = createR2Client();
@@ -158,6 +160,12 @@ export default async function handler(req, res) {
         updatedAt: toIsoOrNull(latest.LastModified)
       };
     }));
+
+    if (downloads.student_apk) {
+      const alternativeUrl = String(runtimeConfig?.studentAlternativeDownloadUrl || '').trim();
+      downloads.student_apk.alternativeUrl = alternativeUrl;
+      downloads.student_apk.alternativeAvailable = Boolean(alternativeUrl);
+    }
 
     return sendJson(res, 200, {
       success: true,
