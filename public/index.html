@@ -132,6 +132,25 @@
   </p>
 
   <div class="mt-10 max-w-3xl mx-auto text-left space-y-4">
+  <!-- Versi 3.6.8 -->
+    <div class="bg-white rounded-2xl shadow-md border border-indigo-200">
+      <button class="flex justify-between w-full px-6 py-4 text-left font-semibold text-indigo-600 hover:bg-indigo-50 toggle-btn">
+        <span>Versi 3.6.8 – 7 April 2026</span>
+        <span class="text-xl">+</span>
+      </button>
+      <div class="hidden px-6 pb-4 text-gray-700 text-sm toggle-content">
+        <ul class="list-disc list-inside mt-2 space-y-1">
+          <li><b>Optimasi Koneksi:</b> Menambahkan sistem <i>Retry</i> otomatis 3x dan <i>Timeout</i> 30 detik untuk stabilitas di jaringan seluler/operator yang lambat.</li>
+          <li><b>Skalabilitas Tinggi:</b> Penambahan fitur <i>Jitter</i> (jeda acak) untuk mendukung 200-500 siswa login bersamaan tanpa membebani router WiFi sekolah.</li>
+          <li><b>Diagnosa Teknis:</b> Menampilkan detail error (<i>Tech Detail</i>) untuk mendeteksi kendala spesifik seperti kuota habis atau blokir DNS pada HP siswa.</li>
+          <li><b>Keamanan Perangkat:</b> Restorasi fitur deteksi <i>Anti-Emulator</i> untuk mencegah kecurangan menggunakan perangkat virtual.</li>
+          <li><b>Proteksi Clipboard:</b> Otomatis menghapus <i>copy-paste</i> (clipboard) saat aplikasi berjalan untuk mencegah penggunaan catatan dari luar.</li>
+          <li><b>Pembaruan Otomatis:</b> Daftar soal kini diperbarui secara otomatis setiap 2 menit di latar belakang tanpa perlu reload manual.</li>
+          <li><b>Kamuflase Browser:</b> Header aplikasi kini menyerupai Google Chrome asli untuk menghindari pembatasan data oleh operator seluler.</li>
+          <li><b>Perbaikan Bug:</b> Menyelesaikan masalah "Gagal Memvalidasi" (Network Timeout) pada layar aktivasi token.</li>
+        </ul>
+      </div>
+    </div>
 
     <!-- Versi 3.6.3 -->
     <div class="bg-white rounded-2xl shadow-md border border-indigo-200">
