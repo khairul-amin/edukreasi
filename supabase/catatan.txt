@@ -1,0 +1,27 @@
+APP_RELEASE_BUCKET=releases
+APP_STUDENT_APK_PATH=student
+APP_ADMIN_EXE_PATH=admin
+
+# pakai custom domain (recommended)
+APP_RELEASE_PUBLIC_BASE_URL=https://download.edukreasi.my.id
+
+# kredensial R2
+R2_ACCOUNT_ID=5386af6955f7b67d13875ad1b66125c9
+R2_ACCESS_KEY_ID=908537be69fc8143b32986ec238df3f
+R2_SECRET_ACCESS_KEY=ee32ebd1d7d60b024c21b1ac058a2927d11021d7931f6153a99afab4bfb2b41
+
+
+Account ID
+
+5386af6955f7b67d13875ad1b66125c9
+
+
+
+Use the following credentials for S3 clients:
+Access Key ID
+908537be69fcf8143b32986ec238df3f
+Click to copy
+
+Secret Access Key
+ee32ebd1d7d760b024c21b1ac058a2927d11021d7931f6153a99afab4bfb2b41
+Click to copy

@@ -1322,6 +1322,7 @@ function renderIssueResult(result) {
 async function handleIssueLicense(event) {
   event.preventDefault();
   const payload = {
+    license_id: els.issueLicenseId?.value.trim() || '',
     school_name: els.issueSchoolName.value.trim(),
     npsn: els.issueNpsn.value.trim(),
     device_id: els.issueDeviceId.value.trim(),
@@ -1330,19 +1331,24 @@ async function handleIssueLicense(event) {
     note: els.issueNote.value.trim()
   };
 
-  if (!payload.npsn || !payload.device_id) {
-    showFlash('NPSN dan device ID wajib diisi untuk menerbitkan lisensi.', 'error');
+  if (!payload.license_id && !payload.npsn) {
+    showFlash('License ID atau NPSN wajib diisi.', 'error');
     return;
   }
 
-  if (!isValidNpsn(payload.npsn)) {
+  if (!payload.device_id) {
+    showFlash('Device ID wajib diisi untuk menghasilkan token lisensi.', 'error');
+    return;
+  }
+
+  if (payload.npsn && !isValidNpsn(payload.npsn)) {
     showFlash('NPSN harus terdiri dari 8 digit angka.', 'error');
     return;
   }
 
   const submitButton = els.issueForm.querySelector('button[type="submit"]');
   submitButton.disabled = true;
-  submitButton.textContent = 'Menerbitkan...';
+  submitButton.textContent = 'Membuat Token...';
 
   try {
     const result = await apiFetch('/api/admin/issue', {
@@ -1356,7 +1362,7 @@ async function handleIssueLicense(event) {
     showFlash(error.message, 'error');
   } finally {
     submitButton.disabled = false;
-    submitButton.textContent = 'Terbitkan Lisensi';
+    submitButton.textContent = 'Buat Token Lisensi';
   }
 }
 
