@@ -1245,7 +1245,7 @@ function bindDeactivateButtons() {
 
 function renderActivationTable(rows) {
   if (!rows.length) {
-    els.activationTable.innerHTML = renderEmptyRow(4, 'Belum ada aktivasi lisensi.');
+    els.activationTable.innerHTML = renderEmptyRow(5, 'Belum ada aktivasi lisensi.');
     return;
   }
 
@@ -1268,14 +1268,15 @@ function renderActivationTable(rows) {
           <div class="mt-1 text-xs text-stone-500">Status registry lisensi utama tidak berubah dari tombol ini.</div>
         </td>
         <td class="px-5 py-4">
+          <div class="text-xs uppercase tracking-[0.2em] text-stone-400">Token Lisensi</div>
+          <div class="mt-2 max-h-24 overflow-hidden break-words text-[10px] leading-5 text-white">${escapeHtml(row.token || '-')}</div>
+          ${row.token ? `<button type="button" data-copy-text="${escapeHtml(row.token)}" data-copy-label="Token Lisensi" class="mt-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10">Salin Token</button>` : ''}
+        </td>
+        <td class="px-5 py-4">
           <div class="text-xs uppercase tracking-[0.2em] text-stone-400">License ID</div>
           <div class="mt-2 break-all font-mono text-xs text-white">${escapeHtml(row.license_id || '-')}</div>
           <div class="mt-3 text-xs uppercase tracking-[0.2em] text-stone-400">Activation ID</div>
           <div class="mt-2 break-all font-mono text-xs text-white">${escapeHtml(row.id || '-')}</div>
-          <div class="mt-3 flex flex-wrap gap-2">
-            ${row.license_id ? `<button type="button" data-copy-text="${escapeHtml(row.license_id)}" data-copy-label="License ID" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10">Salin Lisensi</button>` : ''}
-            ${row.id ? `<button type="button" data-copy-text="${escapeHtml(row.id)}" data-copy-label="Activation ID" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10">Salin Aktivasi</button>` : ''}
-          </div>
         </td>
         <td class="px-5 py-4">
           ${isActive
@@ -1294,20 +1295,10 @@ function renderIssueResult(result) {
     <div class="rounded-[1.7rem] border border-emerald-400/20 bg-emerald-500/10 p-5 text-sm text-emerald-100">
       <p class="text-xs uppercase tracking-[0.3em] text-emerald-200/80">Token Siap Dipakai</p>
       <h4 class="mt-3 font-display text-xl font-bold text-white">Lisensi berhasil diterbitkan.</h4>
-      <div class="mt-4 grid gap-3 sm:grid-cols-2">
-        <div class="rounded-2xl border border-white/10 bg-black/20 p-3">
-          <p class="text-xs uppercase tracking-[0.24em] text-emerald-200/70">License ID</p>
-          <p class="mt-2 break-all font-mono text-xs text-white">${escapeHtml(result.license_id)}</p>
-        </div>
-        <div class="rounded-2xl border border-white/10 bg-black/20 p-3">
-          <p class="text-xs uppercase tracking-[0.24em] text-emerald-200/70">Activation ID</p>
-          <p class="mt-2 break-all font-mono text-xs text-white">${escapeHtml(result.activation_id)}</p>
-        </div>
-      </div>
+      <p class="mt-3 text-sm text-emerald-200/80">Salin token lisensi penuh di bawah dan berikan langsung ke user.</p>
       <textarea class="mt-4 min-h-[170px] w-full rounded-2xl border border-white/10 bg-black/30 p-3 font-mono text-xs text-white">${escapeHtml(result.token)}</textarea>
       <div class="mt-4 flex flex-wrap gap-3">
         <button type="button" id="copyIssuedToken" class="rounded-2xl border border-emerald-300/30 bg-emerald-400/10 px-4 py-2 font-semibold text-emerald-100 transition hover:bg-emerald-400/20">Salin Token</button>
-        <a class="rounded-2xl border border-sky-300/30 bg-sky-400/10 px-4 py-2 font-semibold text-sky-100 transition hover:bg-sky-400/20" href="${escapeHtml(result.checkout_url)}" target="_blank" rel="noreferrer">Buka Checkout</a>
       </div>
     </div>
   `;
